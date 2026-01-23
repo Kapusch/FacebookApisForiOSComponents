@@ -1,0 +1,50 @@
+<Project>
+  <PropertyGroup>
+    <_KapuschFacebookInteropPackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</_KapuschFacebookInteropPackageRoot>
+  </PropertyGroup>
+  <ItemGroup
+    Condition="'$(DisableKapuschFacebookInteropNativeAssets)' == 'true' or '$(UseKapuschFacebookInteropFromSource)' == 'true'"
+  >
+    <!-- Short-circuit: kill-switch or debug-from-source mode. -->
+  </ItemGroup>
+  <Target
+    Name="KapuschFacebookInterop_InjectIosNativeReferences"
+    BeforeTargets="CoreCompile"
+    Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and '$(DisableKapuschFacebookInteropNativeAssets)' != 'true' and '$(UseKapuschFacebookInteropFromSource)' != 'true'"
+  >
+    <PropertyGroup>
+      <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
+      <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <NativeReference Include="$(_KapuschFacebookInteropIosWrapper)">
+        <Kind>Static</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBAEMKit.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit_Basics.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKGamingServicesKit.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework">
+        <Kind>Framework</Kind>
+        <ForceLoad>true</ForceLoad>
+      </NativeReference>
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,0 +1,81 @@
+name: publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pack_and_publish:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine package version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
+            REF="${{ github.ref }}"
+            VERSION="${REF#refs/tags/v}"
+          else
+            CSPROJ="src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj"
+            BASE_VERSION=$(grep -oE '<Version>[^<]+' "$CSPROJ" | head -n 1 | sed 's/<Version>//' || echo "0.1.0")
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            RUN_NUMBER="${{ github.run_number }}"
+            VERSION="${BASE_VERSION}-prerelease.${RUN_NUMBER}.${COMMIT_SHORT}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Package version: ${VERSION}"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install iOS workload
+        run: |
+          dotnet workload install ios
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj') }}
+
+      - name: Cache SwiftPM scratch
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/spm
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Package.resolved') }}
+
+      - name: Build iOS wrapper
+        run: |
+          bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh
+
+      - name: Collect Facebook xcframeworks
+        run: |
+          bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh
+
+      - name: Pack
+        run: |
+          dotnet pack src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj \
+            -c Release \
+            -o artifacts/nuget \
+            /p:PackageVersion="${{ steps.version.outputs.version }}"
+
+      - name: Push to GitHub Packages
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget push artifacts/nuget/*.nupkg \
+            --api-key "$NUGET_AUTH_TOKEN" \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --skip-duplicate

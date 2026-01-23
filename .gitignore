@@ -1,0 +1,31 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+artifacts/
+
+# macOS
+.DS_Store
+
+# SwiftPM / Xcode
+.build/
+*.xcworkspace/
+DerivedData/
+
+# Local caches used by buildTransitive restore
+.kapusch/
+
+# Native build output (repo-only)
+src/**/Native/iOS/build/
+
+# Sample local config
+samples/**/Info.plist
+samples/**/GoogleService-Info.plist
+samples/**/secrets.*
