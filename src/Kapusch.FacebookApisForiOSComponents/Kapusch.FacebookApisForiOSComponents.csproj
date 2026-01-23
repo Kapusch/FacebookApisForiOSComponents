@@ -43,7 +43,8 @@
     <None Include="../../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <ItemGroup Condition="'$(InteropIosWrapperDir)' != '' and Exists('$(InteropIosWrapperDir)')">
-    <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="/" />
+    <!-- Keep the outer directory name so consumers can reference kfb.xcframework/ as a NativeReference. -->
+    <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="kfb.xcframework/" />
   </ItemGroup>
   <ItemGroup Condition="'$(FacebookIosFrameworksDir)' != '' and Exists('$(FacebookIosFrameworksDir)')">
     <None Include="$(FacebookIosFrameworksDir)/**" Pack="true" PackagePath="fb/" />
