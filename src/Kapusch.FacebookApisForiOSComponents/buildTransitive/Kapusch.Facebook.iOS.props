@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <UseKapuschFacebookInteropFromSource Condition="'$(UseKapuschFacebookInteropFromSource)' == ''"
+      >false</UseKapuschFacebookInteropFromSource
+    >
+    <DisableKapuschFacebookInteropNativeAssets
+      Condition="'$(DisableKapuschFacebookInteropNativeAssets)' == ''"
+      >false</DisableKapuschFacebookInteropNativeAssets
+    >
+  </PropertyGroup>
+</Project>

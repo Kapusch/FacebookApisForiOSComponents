@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Native/**</DefaultItemExcludes>
+    <PackageId>Kapusch.Facebook.iOS</PackageId>
+    <Authors>Kapusch</Authors>
+    <Description>Facebook iOS auth interop wrapper + classic xcframework packaging.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Kapusch/FacebookApisForiOSComponents</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>false</IncludeSymbols>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <AssemblyName>Kapusch.Facebook.iOS</AssemblyName>
+    <RootNamespace>Kapusch.Facebook.iOS</RootNamespace>
+    <Version>0.1.0</Version>
+    <PackageReadmeFile>nuget-readme.md</PackageReadmeFile>
+    <InteropIosWrapperDir
+      Condition="'$(InteropIosWrapperDir)' == '' and Exists('Native/iOS/build/kfb.xcframework')"
+      >Native/iOS/build/kfb.xcframework</InteropIosWrapperDir
+    >
+    <FacebookIosFrameworksDir
+      Condition="'$(FacebookIosFrameworksDir)' == '' and Exists('Native/iOS/build/fb')"
+      >Native/iOS/build/fb</FacebookIosFrameworksDir
+    >
+  </PropertyGroup>
+  <ItemGroup>
+    <AndroidAarLibrary Remove="Native/**" />
+    <AndroidExternalJavaLibrary Remove="Native/**" />
+    <AndroidJavaSource Remove="Native/**" />
+    <AndroidLibrary Remove="Native/**" />
+    <Content Remove="Native/**" />
+    <EmbeddedResource Remove="Native/**" />
+    <LibraryProjectZip Remove="Native/**" />
+    <None Remove="Native/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="buildTransitive/**" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="nuget-readme.md" Pack="true" PackagePath="/" />
+    <None Include="../../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(InteropIosWrapperDir)' != '' and Exists('$(InteropIosWrapperDir)')">
+    <!-- Keep the outer directory name so consumers can reference kfb.xcframework/ as a NativeReference. -->
+    <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="kfb.xcframework/" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(FacebookIosFrameworksDir)' != '' and Exists('$(FacebookIosFrameworksDir)')">
+    <None Include="$(FacebookIosFrameworksDir)/**" Pack="true" PackagePath="fb/" />
+  </ItemGroup>
+  <Target
+    Name="_KapuschFacebookInterop_CheckNativeAssets"
+    BeforeTargets="GenerateNuspec"
+    Condition="'$(IsPackable)' == 'true'"
+  >
+    <Error
+      Condition="'$(InteropIosWrapperDir)' == '' or !Exists('$(InteropIosWrapperDir)')"
+      Text="Missing iOS native wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosWrapperDir."
+    />
+    <Error
+      Condition="'$(FacebookIosFrameworksDir)' == '' or !Exists('$(FacebookIosFrameworksDir)')"
+      Text="Missing Facebook iOS xcframeworks. Run src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh or provide FacebookIosFrameworksDir."
+    />
+  </Target>
+</Project>

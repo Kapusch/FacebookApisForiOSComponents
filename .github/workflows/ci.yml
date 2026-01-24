@@ -1,0 +1,96 @@
+name: ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_pack_ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install iOS workload
+        run: |
+          dotnet workload install ios
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj') }}
+
+      - name: Cache SwiftPM scratch
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/spm
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Package.resolved') }}
+
+      - name: Build iOS wrapper
+        run: |
+          bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh
+
+      - name: Collect Facebook xcframeworks
+        run: |
+          bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh
+
+      - name: Pack
+        run: |
+          dotnet pack src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj \
+            -c Release \
+            -o artifacts/nuget
+
+      - name: Validate nupkg layout
+        run: |
+          python3 - <<'PY'
+          import glob, sys, zipfile
+
+          nupkgs = glob.glob("artifacts/nuget/*.nupkg")
+          if not nupkgs:
+            print("ERROR: no .nupkg found under artifacts/nuget/")
+            sys.exit(1)
+
+          nupkg = sorted(nupkgs)[-1]
+          print(f"Validating {nupkg}")
+
+          z = zipfile.ZipFile(nupkg)
+          names = set(z.namelist())
+
+          required = [
+            "buildTransitive/Kapusch.Facebook.iOS.targets",
+            "kfb.xcframework/Info.plist",
+            "fb/FBAEMKit.xcframework/Info.plist",
+            "fb/FBSDKCoreKit.xcframework/Info.plist",
+            "fb/FBSDKCoreKit_Basics.xcframework/Info.plist",
+            "fb/FBSDKGamingServicesKit.xcframework/Info.plist",
+            "fb/FBSDKLoginKit.xcframework/Info.plist",
+            "fb/FBSDKShareKit.xcframework/Info.plist",
+          ]
+
+          missing = [p for p in required if p not in names]
+          if missing:
+            print("ERROR: missing required paths in nupkg:")
+            for p in missing:
+              print(f"  - {p}")
+            sys.exit(1)
+
+          # Guardrail: ensure the wrapper is not flattened at the package root.
+          if "Info.plist" in names:
+            print("ERROR: wrapper appears flattened (found 'Info.plist' at package root).")
+            sys.exit(1)
+
+          print("OK: nupkg layout looks correct.")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget
+          path: artifacts/nuget/*.nupkg
