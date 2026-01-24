@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <ApplicationId>com.kapusch.facebookios.sample</ApplicationId>
+    <ApplicationTitle>Kapusch Facebook iOS Sample</ApplicationTitle>
+    <UseKapuschFacebookInteropFromSource>true</UseKapuschFacebookInteropFromSource>
+    <NoWarn>$(NoWarn);CA1422</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_SampleInfoPlist>$(MSBuildThisFileDirectory)Info.plist</_SampleInfoPlist>
+    <_SampleInfoPlistTemplate>$(MSBuildThisFileDirectory)Info.template.plist</_SampleInfoPlistTemplate>
+    <ApplicationManifest>$(_SampleInfoPlist)</ApplicationManifest>
+  </PropertyGroup>
+  <Target Name="KapuschFacebookSample_EnsureInfoPlist" BeforeTargets="PrepareForBuild">
+    <Copy
+      Condition="!Exists('$(_SampleInfoPlist)') and Exists('$(_SampleInfoPlistTemplate)')"
+      SourceFiles="$(_SampleInfoPlistTemplate)"
+      DestinationFiles="$(_SampleInfoPlist)"
+    />
+  </Target>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../../src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj" />
+  </ItemGroup>
+  <Import
+    Project="$(MSBuildThisFileDirectory)../../src/Kapusch.FacebookApisForiOSComponents/buildTransitive/Kapusch.Facebook.iOS.targets"
+    Condition="Exists('$(MSBuildThisFileDirectory)../../src/Kapusch.FacebookApisForiOSComponents/buildTransitive/Kapusch.Facebook.iOS.targets')"
+  />
+</Project>

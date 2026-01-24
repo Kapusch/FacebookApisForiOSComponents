@@ -48,6 +48,13 @@ jobs:
             -c Release \
             -o artifacts/nuget
 
+      - name: Build iOS sample
+        run: |
+          dotnet build samples/Kapusch.Facebook.iOS.Sample/Kapusch.Facebook.iOS.Sample.csproj \
+            -c Debug \
+            -p:RuntimeIdentifier=iossimulator-arm64 \
+            -p:EnableCodeSigning=false
+
       - uses: actions/upload-artifact@v4
         with:
           name: nuget

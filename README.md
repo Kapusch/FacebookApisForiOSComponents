@@ -21,6 +21,7 @@ See `THIRD_PARTY_NOTICES.md`.
 
 - Formatting: `Docs/Formatting.md`
 - Source mode: `Docs/SourceMode.md`
+- Samples: `samples/README.md`
 
 ## Build (local)
 
