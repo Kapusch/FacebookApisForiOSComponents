@@ -8,4 +8,5 @@ Principles:
 
 ## iOS
 
-- `samples/Kapusch.Facebook.iOS.Sample/` — minimal UIKit app that links against the wrapper + Facebook xcframeworks.
+- `samples/Kapusch.Facebook.iOS.Sample/` — minimal UIKit app that links against the wrapper + Facebook xcframeworks (local validation).
+- Manual CI: `.github/workflows/sample-ios.yml` (run via `workflow_dispatch`).
