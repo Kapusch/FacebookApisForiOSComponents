@@ -40,10 +40,30 @@ Pack the NuGet:
 
 ## Consumption
 
-- Install the package from GitHub Packages (pre-release).
+- Install the package from NuGet.org for public release tags.
+- Install the package from GitHub Packages for internal preview builds.
 - Follow `Docs/Integration.md` for Info.plist keys and AppDelegate hooks.
 
 ## CI
 
 - PR CI is build-only.
-- Publishing is handled by a workflow that pushes a pre-release to GitHub Packages.
+- Publishing is handled by `.github/workflows/publish.yml` with channel routing:
+	- tag `vX.Y.Z` on `master` -> NuGet.org (stable)
+	- tag `vX.Y.Z-rc.N` on `release/*` -> NuGet.org (pre-release)
+	- non-tag runs (`workflow_dispatch`) -> GitHub Packages (`X.Y.Z-preview.<run>.<sha>`)
+- NuGet.org publishing uses NuGet Trusted Publishing (OIDC via `NuGet/login@v1`), no long-lived NuGet API key.
+
+### Required GitHub secret
+
+- `NUGET_USER`: your nuget.org profile username (not email), used by `NuGet/login@v1`.
+
+## Release examples
+
+- Pre-release candidate from a release branch:
+	- `git checkout release/1.0.0`
+	- `git tag v1.0.0-rc.1`
+	- `git push origin v1.0.0-rc.1`
+- Stable release from master:
+	- `git checkout master`
+	- `git tag v1.0.0`
+	- `git push origin v1.0.0`

@@ -13,6 +13,10 @@ permissions:
 jobs:
   pack_and_publish:
     runs-on: macos-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,18 +26,48 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
-            REF="${{ github.ref }}"
+          REF="${{ github.ref }}"
+          EVENT="${{ github.event_name }}"
+          CSPROJ="src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj"
+          BASE_VERSION=$(grep -oE '<Version>[^<]+' "$CSPROJ" | head -n 1 | sed 's/<Version>//' || echo "0.1.0")
+
+          if [[ "$REF" =~ ^refs/tags/v ]]; then
             VERSION="${REF#refs/tags/v}"
+            PUBLISH_TARGET="nuget"
+
+            git fetch origin +refs/heads/*:refs/remotes/origin/*
+            TAGGED_SHA="${{ github.sha }}"
+            CONTAINING_BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin --contains "$TAGGED_SHA")
+
+            ON_MASTER="false"
+            ON_RELEASE="false"
+            while IFS= read -r branch; do
+              [[ "$branch" == "origin/master" ]] && ON_MASTER="true"
+              [[ "$branch" == origin/release/* ]] && ON_RELEASE="true"
+            done <<< "$CONTAINING_BRANCHES"
+
+            if [[ "$VERSION" == *-* ]]; then
+              if [[ "$ON_RELEASE" != "true" ]]; then
+                echo "ERROR: Pre-release tag v$VERSION must point to a commit contained in origin/release/*"
+                exit 1
+              fi
+            else
+              if [[ "$ON_MASTER" != "true" ]]; then
+                echo "ERROR: Stable tag v$VERSION must point to a commit contained in origin/master"
+                exit 1
+              fi
+            fi
           else
-            CSPROJ="src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj"
-            BASE_VERSION=$(grep -oE '<Version>[^<]+' "$CSPROJ" | head -n 1 | sed 's/<Version>//' || echo "0.1.0")
             COMMIT_SHORT=$(git rev-parse --short HEAD)
             RUN_NUMBER="${{ github.run_number }}"
-            VERSION="${BASE_VERSION}-prerelease.${RUN_NUMBER}.${COMMIT_SHORT}"
+            VERSION="${BASE_VERSION}-preview.${RUN_NUMBER}.${COMMIT_SHORT}"
+            PUBLISH_TARGET="github"
           fi
+
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "publish_target=${PUBLISH_TARGET}" >> "$GITHUB_OUTPUT"
           echo "Package version: ${VERSION}"
+          echo "Publish target: ${PUBLISH_TARGET}"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -112,7 +146,23 @@ jobs:
           print("OK: nupkg layout looks correct.")
           PY
 
+      - name: Push to NuGet.org
+        if: steps.version.outputs.publish_target == 'nuget'
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to NuGet.org
+        if: steps.version.outputs.publish_target == 'nuget'
+        run: |
+          dotnet nuget push artifacts/nuget/*.nupkg \
+            --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --skip-duplicate
+
       - name: Push to GitHub Packages
+        if: steps.version.outputs.publish_target == 'github'
         env:
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
