@@ -51,6 +51,7 @@ Pack the NuGet:
 	- tag `vX.Y.Z` on `master` -> NuGet.org (stable)
 	- tag `vX.Y.Z-rc.N` on `release/*` -> NuGet.org (pre-release)
 	- non-tag runs (`workflow_dispatch`) -> GitHub Packages (`X.Y.Z-preview.<run>.<sha>`)
+	- `workflow_dispatch` with `manual_version` -> NuGet.org (forced version)
 - NuGet.org publishing uses NuGet Trusted Publishing (OIDC via `NuGet/login@v1`), no long-lived NuGet API key.
 
 ### Required GitHub secret

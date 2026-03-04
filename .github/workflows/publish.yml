@@ -2,6 +2,11 @@ name: publish
 
 on:
   workflow_dispatch:
+    inputs:
+      manual_version:
+        description: 'Force a specific version for NuGet.org publish (e.g., 1.0.0 or 1.0.0-rc.1). If empty, defaults to auto-generated preview for GitHub Packages.'
+        required: false
+        type: string
   push:
     tags:
       - "v*"
@@ -28,13 +33,25 @@ jobs:
         run: |
           REF="${{ github.ref }}"
           EVENT="${{ github.event_name }}"
+          MANUAL_VERSION="${{ github.event.inputs.manual_version }}"
           CSPROJ="src/Kapusch.FacebookApisForiOSComponents/Kapusch.FacebookApisForiOSComponents.csproj"
           BASE_VERSION=$(grep -oE '<Version>[^<]+' "$CSPROJ" | head -n 1 | sed 's/<Version>//' || echo "0.1.0")
 
-          if [[ "$REF" =~ ^refs/tags/v ]]; then
+          if [[ -n "$MANUAL_VERSION" ]]; then
+            VERSION="$MANUAL_VERSION"
+            PUBLISH_TARGET="nuget"
+            echo "Manual version provided ($VERSION). Triggering NuGet.org publish."
+          elif [[ "$REF" =~ ^refs/tags/v ]]; then
             VERSION="${REF#refs/tags/v}"
             PUBLISH_TARGET="nuget"
+          else
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            RUN_NUMBER="${{ github.run_number }}"
+            VERSION="${BASE_VERSION}-preview.${RUN_NUMBER}.${COMMIT_SHORT}"
+            PUBLISH_TARGET="github"
+          fi
 
+          if [[ "$PUBLISH_TARGET" == "nuget" ]]; then
             git fetch origin +refs/heads/*:refs/remotes/origin/*
             TAGGED_SHA="${{ github.sha }}"
             CONTAINING_BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin --contains "$TAGGED_SHA")
@@ -48,20 +65,15 @@ jobs:
 
             if [[ "$VERSION" == *-* ]]; then
               if [[ "$ON_RELEASE" != "true" ]]; then
-                echo "ERROR: Pre-release tag v$VERSION must point to a commit contained in origin/release/*"
+                echo "ERROR: Pre-release version $VERSION must be on origin/release/*"
                 exit 1
               fi
             else
               if [[ "$ON_MASTER" != "true" ]]; then
-                echo "ERROR: Stable tag v$VERSION must point to a commit contained in origin/master"
+                echo "ERROR: Stable version $VERSION must be on origin/master"
                 exit 1
               fi
             fi
-          else
-            COMMIT_SHORT=$(git rev-parse --short HEAD)
-            RUN_NUMBER="${{ github.run_number }}"
-            VERSION="${BASE_VERSION}-preview.${RUN_NUMBER}.${COMMIT_SHORT}"
-            PUBLISH_TARGET="github"
           fi
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
