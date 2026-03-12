@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Foundation;
 using Kapusch.Facebook.iOS;
 using UIKit;
@@ -29,10 +30,11 @@ public sealed class AppDelegate : UIApplicationDelegate
 
 			try
 			{
+				var rawNonce = GenerateRawNonce();
 				var result = await NativeFacebookLogin.SignInAsync(
 					presenter.Handle,
 					FacebookTrackingMode.Limited,
-					rawNonce: null,
+					rawNonce: rawNonce,
 					CancellationToken.None
 				);
 
@@ -52,6 +54,12 @@ public sealed class AppDelegate : UIApplicationDelegate
 		Window.MakeKeyAndVisible();
 
 		return true;
+	}
+
+	private static string GenerateRawNonce(int size = 32)
+	{
+		var bytes = RandomNumberGenerator.GetBytes(size);
+		return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 	}
 
 	public override bool OpenUrl(UIApplication application, NSUrl url, NSDictionary options) =>
