@@ -16,7 +16,7 @@ public static unsafe class NativeFacebookLogin
 		{
 			KfiFacebookInitialize(
 				uiApplicationHandle,
-				launchOptionsHandle == IntPtr.Zero ? null : launchOptionsHandle
+				launchOptionsHandle
 			);
 		}
 		catch
@@ -39,7 +39,7 @@ public static unsafe class NativeFacebookLogin
 			return KfiFacebookHandleOpenUrl(
 				uiApplicationHandle,
 				nsUrlHandle,
-				optionsHandle == IntPtr.Zero ? null : optionsHandle
+				optionsHandle
 			);
 		}
 		catch
@@ -131,14 +131,14 @@ public static unsafe class NativeFacebookLogin
 	}
 
 	[DllImport(LibraryName, EntryPoint = "kfb_facebook_initialize")]
-	private static extern void KfiFacebookInitialize(IntPtr uiApplication, IntPtr? launchOptions);
+	private static extern void KfiFacebookInitialize(IntPtr uiApplication, IntPtr launchOptions);
 
 	[DllImport(LibraryName, EntryPoint = "kfb_facebook_handle_open_url")]
 	[return: MarshalAs(UnmanagedType.I1)]
 	private static extern bool KfiFacebookHandleOpenUrl(
 		IntPtr uiApplication,
 		IntPtr nsUrl,
-		IntPtr? options
+		IntPtr options
 	);
 
 	[DllImport(LibraryName, EntryPoint = "kfb_facebook_signin_start")]
