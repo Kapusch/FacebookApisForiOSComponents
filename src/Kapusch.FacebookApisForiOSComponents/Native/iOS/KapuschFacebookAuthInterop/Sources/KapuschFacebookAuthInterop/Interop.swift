@@ -155,7 +155,10 @@ public func kfb_facebook_signin_start(
 	let tracking = trackingMode == FacebookTrackingMode.enabled.rawValue
 		? LoginTracking.enabled
 		: LoginTracking.limited
-	let nonce = noncePtr.flatMap { String(cString: $0) }
+	let nonce = noncePtr.flatMap { raw -> String? in
+		let trimmed = String(cString: raw).trimmingCharacters(in: .whitespacesAndNewlines)
+		return trimmed.isEmpty ? nil : trimmed
+	}
 	if tracking == .limited && nonce == nil {
 		callFacebookCallback(
 			callback,
@@ -170,13 +173,35 @@ public func kfb_facebook_signin_start(
 		return
 	}
 
-	let loginNonce = nonce ?? ""
+	let loginConfig: LoginConfiguration? = {
+		if let nonce {
+			return LoginConfiguration(
+				permissions: ["public_profile", "email"],
+				tracking: tracking,
+				nonce: nonce
+			)
+		}
 
-	let loginConfig = LoginConfiguration(
-		permissions: ["public_profile", "email"],
-		tracking: tracking,
-		nonce: loginNonce
-	)
+		return LoginConfiguration(
+			permissions: ["public_profile", "email"],
+			tracking: tracking,
+			messengerPageId: nil
+		)
+	}()
+
+	guard let loginConfig else {
+		callFacebookCallback(
+			callback,
+			status: .failed,
+			errorCode: "invalid_login_configuration",
+			errorMessage: "Cannot create a valid Facebook LoginConfiguration.",
+			context: context
+		)
+		FacebookState.inProgress = false
+		FacebookState.callback = nil
+		FacebookState.context = nil
+		return
+	}
 
 	LoginManager().logIn(
 		viewController: presenting,

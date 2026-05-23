@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "iosSimulatorUdid",
+      "type": "promptString",
+      "description": "Simulator UDID (run: xcrun simctl list devices | rg Booted)",
+      "default": "760FECA7-AD46-4AE7-A112-385D384450C8"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "iOS Sample (Run x64 simulator)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "dotnet build ${workspaceFolder}/samples/Kapusch.Facebook.iOS.Sample/Kapusch.Facebook.iOS.Sample.csproj -t:Run -c Debug -p:RuntimeIdentifier=iossimulator-x64 -p:_DeviceName=:v2:udid=${input:iosSimulatorUdid}"
+    },
+    {
+      "name": "iOS Sample (Device logs)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "xcrun simctl spawn ${input:iosSimulatorUdid} log stream --style compact --level debug --predicate 'process == \"Kapusch.Facebook.iOS.Sample\"'"
+    },
+    {
+      "name": "iOS Sample (Build only x64)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "dotnet build ${workspaceFolder}/samples/Kapusch.Facebook.iOS.Sample/Kapusch.Facebook.iOS.Sample.csproj -c Debug -p:RuntimeIdentifier=iossimulator-x64"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "iOS Sample (Run + Device logs)",
+      "configurations": [
+        "iOS Sample (Device logs)",
+        "iOS Sample (Run x64 simulator)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
