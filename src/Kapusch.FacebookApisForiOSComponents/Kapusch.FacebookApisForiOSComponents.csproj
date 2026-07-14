@@ -22,6 +22,10 @@
       Condition="'$(InteropIosWrapperDir)' == '' and Exists('Native/iOS/build/kfb.xcframework')"
       >Native/iOS/build/kfb.xcframework</InteropIosWrapperDir
     >
+	<InteropIosShareWrapperDir
+	  Condition="'$(InteropIosShareWrapperDir)' == '' and Exists('Native/iOS/build/kfbshare.xcframework')"
+	  >Native/iOS/build/kfbshare.xcframework</InteropIosShareWrapperDir
+	>
     <FacebookIosFrameworksDir
       Condition="'$(FacebookIosFrameworksDir)' == '' and Exists('Native/iOS/build/fb')"
       >Native/iOS/build/fb</FacebookIosFrameworksDir
@@ -46,6 +50,9 @@
     <!-- Keep the outer directory name so consumers can reference kfb.xcframework/ as a NativeReference. -->
     <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="kfb.xcframework/" />
   </ItemGroup>
+	<ItemGroup Condition="'$(InteropIosShareWrapperDir)' != '' and Exists('$(InteropIosShareWrapperDir)')">
+		<None Include="$(InteropIosShareWrapperDir)/**" Pack="true" PackagePath="kfbshare.xcframework/" />
+	</ItemGroup>
   <ItemGroup Condition="'$(FacebookIosFrameworksDir)' != '' and Exists('$(FacebookIosFrameworksDir)')">
     <None Include="$(FacebookIosFrameworksDir)/**" Pack="true" PackagePath="fb/" />
   </ItemGroup>
@@ -58,6 +65,10 @@
       Condition="'$(InteropIosWrapperDir)' == '' or !Exists('$(InteropIosWrapperDir)')"
       Text="Missing iOS native wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosWrapperDir."
     />
+	<Error
+	  Condition="'$(InteropIosShareWrapperDir)' == '' or !Exists('$(InteropIosShareWrapperDir)')"
+	  Text="Missing iOS share wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareWrapperDir."
+	/>
     <Error
       Condition="'$(FacebookIosFrameworksDir)' == '' or !Exists('$(FacebookIosFrameworksDir)')"
       Text="Missing Facebook iOS xcframeworks. Run src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh or provide FacebookIosFrameworksDir."

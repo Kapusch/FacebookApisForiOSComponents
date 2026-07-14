@@ -6,6 +6,7 @@ PACKAGE_DIR="$ROOT_DIR/KapuschFacebookAuthInterop"
 BUILD_DIR="$ROOT_DIR/build"
 
 XCFRAMEWORK_OUT="$BUILD_DIR/kfb.xcframework"
+SHARE_XCFRAMEWORK_OUT="$BUILD_DIR/kfbshare.xcframework"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -44,6 +45,10 @@ SIM_ARM64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-arm64" -maxdepth 4 -path "*/
 SIM_X64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-x86_64" -maxdepth 4 -path "*/release/libKapuschFacebookAuthInterop.a" | head -n 1)"
 
 SIM_UNIVERSAL_LIB="$BUILD_DIR/libKapuschFacebookAuthInterop_simulator_universal.a"
+SHARE_IOS_LIB="$(find "$SCRATCH_DIR/iphoneos" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
+SHARE_SIM_ARM64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-arm64" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
+SHARE_SIM_X64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-x86_64" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
+SHARE_SIM_UNIVERSAL_LIB="$BUILD_DIR/libKapuschFacebookShareInterop_simulator_universal.a"
 echo "[KapuschFacebookAuthInterop] Creating universal simulator static library..."
 if [ ! -f "$SIM_ARM64_LIB" ]; then
 	echo "Expected simulator (arm64) static library not found: $SIM_ARM64_LIB" >&2
@@ -56,6 +61,7 @@ if [ ! -f "$SIM_X64_LIB" ]; then
 fi
 
 lipo -create "$SIM_ARM64_LIB" "$SIM_X64_LIB" -output "$SIM_UNIVERSAL_LIB"
+lipo -create "$SHARE_SIM_ARM64_LIB" "$SHARE_SIM_X64_LIB" -output "$SHARE_SIM_UNIVERSAL_LIB"
 
 HEADERS_DIR="$PACKAGE_DIR/include"
 
@@ -69,10 +75,29 @@ if [ ! -f "$SIM_UNIVERSAL_LIB" ]; then
 	exit 1
 fi
 
+if [ -z "$SHARE_IOS_LIB" ] || [ ! -f "$SHARE_IOS_LIB" ]; then
+	echo "Expected share iOS static library not found: $SHARE_IOS_LIB" >&2
+	exit 1
+fi
+
+if [ ! -f "$SHARE_SIM_UNIVERSAL_LIB" ]; then
+	echo "Expected share simulator static library not found: $SHARE_SIM_UNIVERSAL_LIB" >&2
+	exit 1
+fi
+
 echo "[KapuschFacebookAuthInterop] Creating xcframework..."
 xcodebuild -create-xcframework \
 	-library "$IOS_LIB" -headers "$HEADERS_DIR" \
 	-library "$SIM_UNIVERSAL_LIB" -headers "$HEADERS_DIR" \
 	-output "$XCFRAMEWORK_OUT"
 
+echo "[KapuschFacebookShareInterop] Creating xcframework..."
+xcodebuild -create-xcframework \
+	-library "$SHARE_IOS_LIB" -headers "$HEADERS_DIR" \
+	-library "$SHARE_SIM_UNIVERSAL_LIB" -headers "$HEADERS_DIR" \
+	-output "$SHARE_XCFRAMEWORK_OUT"
+
+bash "$ROOT_DIR/collect-facebook-xcframeworks.sh"
+
 echo "[KapuschFacebookAuthInterop] Done: $XCFRAMEWORK_OUT"
+echo "[KapuschFacebookShareInterop] Done: $SHARE_XCFRAMEWORK_OUT"

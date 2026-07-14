@@ -12,9 +12,14 @@ let package = Package(
 			type: .static,
 			targets: ["KapuschFacebookAuthInterop"]
 		),
+		.library(
+			name: "KapuschFacebookShareInterop",
+			type: .static,
+			targets: ["KapuschFacebookShareInterop"]
+		),
 	],
 	dependencies: [
-		.package(url: "https://github.com/facebook/facebook-ios-sdk", from: "18.0.1"),
+		.package(url: "https://github.com/facebook/facebook-ios-sdk", exact: "18.0.2"),
 	],
 	targets: [
 		.target(
@@ -24,6 +29,14 @@ let package = Package(
 				.product(name: "FacebookCore", package: "facebook-ios-sdk"),
 			],
 			path: "Sources/KapuschFacebookAuthInterop"
+		),
+		.target(
+			name: "KapuschFacebookShareInterop",
+			dependencies: [
+				.product(name: "FacebookShare", package: "facebook-ios-sdk"),
+				.product(name: "FacebookCore", package: "facebook-ios-sdk"),
+			],
+			path: "Sources/KapuschFacebookShareInterop"
 		),
 	]
 )
