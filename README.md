@@ -1,6 +1,6 @@
 # FacebookApisForiOSComponents
 
-Public OSS repository that packages **Facebook Login for iOS** into a consumable .NET NuGet.
+Public OSS repository that packages selected Facebook iOS features into a consumable .NET NuGet.
 
 ## Package
 
@@ -9,9 +9,17 @@ Public OSS repository that packages **Facebook Login for iOS** into a consumable
 ## What this repo ships
 
 A NuGet package that:
-- provides a small managed API for **Facebook Login (iOS)**, and
+- provides managed APIs for **Facebook Login** and **Facebook photo sharing**, and
 - redistributes the required **Facebook iOS SDK xcframeworks** inside the `.nupkg` (classic/native binding packaging),
 - injects the xcframeworks into consuming apps via `buildTransitive` `NativeReference` items.
+
+Select features with `KapuschFacebookFeatures=Login`, `Share`, or `Login;Share`.
+The default remains `Login` for compatibility.
+
+Facebook iOS SDK 18.0.2 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
+`Share` currently includes `ShareKit`, `CoreKit`, `CoreKit_Basics` and `FBAEMKit`.
+A consumer that forbids `FBAEMKit` must block Store delivery; this repository
+does not strip or conceal the dependency.
 
 ## Third-party licenses
 
