@@ -1,0 +1,21 @@
+<Project>
+  <!-- Reproduce NuGet's import order: .props, consumer project body, .targets. -->
+  <Import Project="../src/Kapusch.FacebookApisForiOSComponents/buildTransitive/Kapusch.Facebook.iOS.props" />
+
+  <PropertyGroup Condition="'$(RequestedFacebookFeatures)' != ''">
+    <KapuschFacebookFeatures>$(RequestedFacebookFeatures)</KapuschFacebookFeatures>
+  </PropertyGroup>
+
+  <Import Project="../src/Kapusch.FacebookApisForiOSComponents/buildTransitive/Kapusch.Facebook.iOS.targets" />
+
+  <Target Name="ValidateFeatureSelection">
+    <Error
+      Condition="'$(_KapuschFacebookLoginEnabled)' != '$(ExpectedLoginEnabled)'"
+      Text="Expected Login=$(ExpectedLoginEnabled), got $(_KapuschFacebookLoginEnabled) for '$(KapuschFacebookFeatures)'."
+    />
+    <Error
+      Condition="'$(_KapuschFacebookShareEnabled)' != '$(ExpectedShareEnabled)'"
+      Text="Expected Share=$(ExpectedShareEnabled), got $(_KapuschFacebookShareEnabled) for '$(KapuschFacebookFeatures)'."
+    />
+  </Target>
+</Project>
