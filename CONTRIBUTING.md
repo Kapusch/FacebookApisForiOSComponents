@@ -32,8 +32,11 @@ Pack the NuGet:
 ## Pull requests
 
 - Keep PRs focused and well-scoped.
+- Branch from `master` and target `master`; this repository does not use long-lived `release/*` branches.
 - Do not commit secrets.
 - If you update the Facebook SDK version, update `Package.swift` and `Package.resolved` together.
+
+See `Docs/Release.md` before changing versions, tags, or publishing workflows.
 
 ## License
 

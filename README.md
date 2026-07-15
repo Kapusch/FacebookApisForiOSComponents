@@ -29,6 +29,7 @@ See `THIRD_PARTY_NOTICES.md`.
 
 - Formatting: `Docs/Formatting.md`
 - Source mode: `Docs/SourceMode.md`
+- Release workflow: `Docs/Release.md`
 - Samples: `samples/README.md`
 
 ## Build (local)
@@ -57,22 +58,13 @@ Pack the NuGet:
 - PR CI is build-only.
 - Publishing is handled by `.github/workflows/publish.yml` with channel routing:
 	- tag `vX.Y.Z` on `master` -> NuGet.org (stable)
-	- tag `vX.Y.Z-rc.N` on `release/*` -> NuGet.org (pre-release)
+	- tag `vX.Y.Z-rc.N` on `master` -> NuGet.org (pre-release)
 	- non-tag runs (`workflow_dispatch`) -> GitHub Packages (`X.Y.Z-preview.<run>.<sha>`)
-	- `workflow_dispatch` with `manual_version` -> NuGet.org (forced version)
+	- `workflow_dispatch` on `master` with `manual_version` -> NuGet.org (forced version)
 - NuGet.org publishing uses NuGet Trusted Publishing (OIDC via `NuGet/login@v1`), no long-lived NuGet API key.
 
 ### Required GitHub secret
 
 - `NUGET_USER`: your nuget.org profile username (not email), used by `NuGet/login@v1`.
 
-## Release examples
-
-- Pre-release candidate from a release branch:
-	- `git checkout release/1.0.0`
-	- `git tag v1.0.0-rc.1`
-	- `git push origin v1.0.0-rc.1`
-- Stable release from master:
-	- `git checkout master`
-	- `git tag v1.0.0`
-	- `git push origin v1.0.0`
+See `Docs/Release.md` for the validated release sequence. Historical tags remain immutable even when obsolete branches are deleted.
