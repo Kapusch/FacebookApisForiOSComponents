@@ -1,5 +1,10 @@
 <Project>
   <PropertyGroup>
+    <!-- Package .props are imported before the consuming project body. Resolve the
+         selected features here, after the consumer had a chance to override them. -->
+    <_KapuschFacebookFeaturesDelimited>;$([System.String]::Copy('$(KapuschFacebookFeatures)').Replace(' ', ''));</_KapuschFacebookFeaturesDelimited>
+    <_KapuschFacebookLoginEnabled>$([System.String]::Copy('$(_KapuschFacebookFeaturesDelimited)').Contains(';Login;'))</_KapuschFacebookLoginEnabled>
+    <_KapuschFacebookShareEnabled>$([System.String]::Copy('$(_KapuschFacebookFeaturesDelimited)').Contains(';Share;'))</_KapuschFacebookShareEnabled>
     <_KapuschFacebookInteropPackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</_KapuschFacebookInteropPackageRoot>
   </PropertyGroup>
   <PropertyGroup Condition="'$(UseKapuschFacebookInteropFromSource)' == 'true'">

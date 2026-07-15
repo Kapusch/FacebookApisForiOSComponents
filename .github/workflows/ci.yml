@@ -17,6 +17,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Validate feature selection
+        run: bash tests/validate-feature-selection.sh
+
       - name: Install iOS workload
         run: |
           dotnet workload install ios
