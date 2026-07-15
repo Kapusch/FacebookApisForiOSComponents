@@ -5,8 +5,6 @@ namespace Kapusch.Facebook.iOS;
 
 public static unsafe class NativeFacebookLogin
 {
-	private const string LibraryName = "__Internal";
-
 	public static void Initialize(IntPtr uiApplicationHandle, IntPtr launchOptionsHandle)
 	{
 		if (uiApplicationHandle == IntPtr.Zero)
@@ -14,7 +12,7 @@ public static unsafe class NativeFacebookLogin
 
 		try
 		{
-			KfiFacebookInitialize(
+			ResolveInitialize()(
 				uiApplicationHandle,
 				launchOptionsHandle
 			);
@@ -36,11 +34,11 @@ public static unsafe class NativeFacebookLogin
 
 		try
 		{
-			return KfiFacebookHandleOpenUrl(
+			return ResolveHandleOpenUrl()(
 				uiApplicationHandle,
 				nsUrlHandle,
 				optionsHandle
-			);
+			) != 0;
 		}
 		catch
 		{
@@ -68,13 +66,29 @@ public static unsafe class NativeFacebookLogin
 		var gch = GCHandle.Alloc(tcs);
 		var context = GCHandle.ToIntPtr(gch);
 
-		KfiFacebookSignInStart(
-			presentingViewControllerHandle,
-			(int)trackingMode,
-			rawNonce,
-			&KfiFacebookCallback,
-			context
-		);
+		var noncePointer = string.IsNullOrEmpty(rawNonce)
+			? IntPtr.Zero
+			: Marshal.StringToCoTaskMemUTF8(rawNonce);
+		try
+		{
+			ResolveSignInStart()(
+				presentingViewControllerHandle,
+				(int)trackingMode,
+				noncePointer,
+				&KfiFacebookCallback,
+				context
+			);
+		}
+		catch
+		{
+			gch.Free();
+			throw;
+		}
+		finally
+		{
+			if (noncePointer != IntPtr.Zero)
+				Marshal.FreeCoTaskMem(noncePointer);
+		}
 
 		_ = cancellationToken.Register(() =>
 			tcs.TrySetResult(new NativeFacebookSignInResult(NativeSignInStatus.Cancelled))
@@ -87,7 +101,7 @@ public static unsafe class NativeFacebookLogin
 	{
 		try
 		{
-			KfiFacebookSignOut();
+			ResolveSignOut()();
 		}
 		catch
 		{
@@ -130,35 +144,32 @@ public static unsafe class NativeFacebookLogin
 		}
 	}
 
-	[DllImport(LibraryName, EntryPoint = "kfb_facebook_initialize")]
-	private static extern void KfiFacebookInitialize(IntPtr uiApplication, IntPtr launchOptions);
+	private static IntPtr Resolve(string symbol) =>
+		NativeLibrary.GetExport(NativeLibrary.GetMainProgramHandle(), symbol);
 
-	[DllImport(LibraryName, EntryPoint = "kfb_facebook_handle_open_url")]
-	[return: MarshalAs(UnmanagedType.I1)]
-	private static extern bool KfiFacebookHandleOpenUrl(
-		IntPtr uiApplication,
-		IntPtr nsUrl,
-		IntPtr options
-	);
+	private static delegate* unmanaged[Cdecl]<IntPtr, IntPtr, void> ResolveInitialize() =>
+		(delegate* unmanaged[Cdecl]<IntPtr, IntPtr, void>)Resolve("kfb_facebook_initialize");
 
-	[DllImport(LibraryName, EntryPoint = "kfb_facebook_signin_start")]
-	private static extern void KfiFacebookSignInStart(
-		IntPtr presentingViewController,
-		int trackingMode,
-		[MarshalAs(UnmanagedType.LPUTF8Str)] string? rawNonce,
-		delegate* unmanaged[Cdecl]<
+	private static delegate* unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, byte> ResolveHandleOpenUrl() =>
+		(delegate* unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, byte>)Resolve(
+			"kfb_facebook_handle_open_url"
+		);
+
+	private static delegate* unmanaged[Cdecl]<
+		IntPtr,
+		int,
+		IntPtr,
+		delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, void>,
+		IntPtr,
+		void> ResolveSignInStart() =>
+		(delegate* unmanaged[Cdecl]<
+			IntPtr,
 			int,
 			IntPtr,
+			delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, void>,
 			IntPtr,
-			IntPtr,
-			IntPtr,
-			IntPtr,
-			IntPtr,
-			IntPtr,
-			void> callback,
-		IntPtr context
-	);
+			void>)Resolve("kfb_facebook_signin_start");
 
-	[DllImport(LibraryName, EntryPoint = "kfb_facebook_signout")]
-	private static extern void KfiFacebookSignOut();
+	private static delegate* unmanaged[Cdecl]<void> ResolveSignOut() =>
+		(delegate* unmanaged[Cdecl]<void>)Resolve("kfb_facebook_signout");
 }

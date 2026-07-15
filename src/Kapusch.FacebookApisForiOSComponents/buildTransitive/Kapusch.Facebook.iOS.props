@@ -1,5 +1,9 @@
 <Project>
   <PropertyGroup>
+	<KapuschFacebookFeatures Condition="'$(KapuschFacebookFeatures)' == ''">Login</KapuschFacebookFeatures>
+	<_KapuschFacebookFeaturesDelimited>;$([System.String]::Copy('$(KapuschFacebookFeatures)').Replace(' ', ''));</_KapuschFacebookFeaturesDelimited>
+	<_KapuschFacebookLoginEnabled>$([System.String]::Copy('$(_KapuschFacebookFeaturesDelimited)').Contains(';Login;'))</_KapuschFacebookLoginEnabled>
+	<_KapuschFacebookShareEnabled>$([System.String]::Copy('$(_KapuschFacebookFeaturesDelimited)').Contains(';Share;'))</_KapuschFacebookShareEnabled>
     <UseKapuschFacebookInteropFromSource Condition="'$(UseKapuschFacebookInteropFromSource)' == ''"
       >false</UseKapuschFacebookInteropFromSource
     >

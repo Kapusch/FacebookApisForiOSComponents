@@ -12,21 +12,32 @@
   >
     <PropertyGroup>
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
+	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
+      <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
+      <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == ''">ios-arm64</_KapuschFacebookInteropSlice>
     </PropertyGroup>
     <Error
-      Condition="!Exists('$(_KapuschFacebookInteropIosWrapper)')"
+	  Condition="'$(_KapuschFacebookLoginEnabled)' == 'True' and !Exists('$(_KapuschFacebookInteropIosWrapper)')"
       Text="Kapusch.Facebook.iOS source-mode: missing wrapper xcframework at '$(_KapuschFacebookInteropIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
     />
+	<Error
+	  Condition="'$(_KapuschFacebookShareEnabled)' == 'True' and !Exists('$(_KapuschFacebookShareInteropIosWrapper)')"
+	  Text="Kapusch.Facebook.iOS source-mode: missing share wrapper xcframework at '$(_KapuschFacebookShareInteropIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
+	/>
     <Error
       Condition="!Exists('$(_KapuschFacebookInteropFbDir)')"
       Text="Kapusch.Facebook.iOS source-mode: missing Facebook xcframeworks dir at '$(_KapuschFacebookInteropFbDir)'. Run src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh."
     />
     <ItemGroup>
-      <NativeReference Include="$(_KapuschFacebookInteropIosWrapper)">
+	  <NativeReference Include="$(_KapuschFacebookInteropIosWrapper)" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'">
         <Kind>Static</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
+	  <NativeReference Include="$(_KapuschFacebookShareInteropIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
       <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBAEMKit.xcframework">
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
@@ -39,18 +50,19 @@
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKGamingServicesKit.xcframework">
+	  <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'">
+		<Kind>Framework</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
+	  <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework">
-        <Kind>Framework</Kind>
-        <ForceLoad>true</ForceLoad>
-      </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework">
-        <Kind>Framework</Kind>
-        <ForceLoad>true</ForceLoad>
-      </NativeReference>
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBAEMKit.xcframework/$(_KapuschFacebookInteropSlice)/FBAEMKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBAEMKit_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKCoreKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKCoreKit_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit_Basics.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKCoreKit_Basics.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKCoreKit_Basics_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKLoginKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKLoginKit_PrivacyInfo.xcprivacy" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKShareKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKShareKit_PrivacyInfo.xcprivacy" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'" />
     </ItemGroup>
   </Target>
   <Target
@@ -60,13 +72,20 @@
   >
     <PropertyGroup>
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
+	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
+      <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
+      <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == ''">ios-arm64</_KapuschFacebookInteropSlice>
     </PropertyGroup>
     <ItemGroup>
-      <NativeReference Include="$(_KapuschFacebookInteropIosWrapper)">
+	  <NativeReference Include="$(_KapuschFacebookInteropIosWrapper)" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'">
         <Kind>Static</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
+	  <NativeReference Include="$(_KapuschFacebookShareInteropIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
       <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBAEMKit.xcframework">
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
@@ -79,18 +98,19 @@
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKGamingServicesKit.xcframework">
+	  <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'">
+		<Kind>Framework</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
+	  <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
         <Kind>Framework</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework">
-        <Kind>Framework</Kind>
-        <ForceLoad>true</ForceLoad>
-      </NativeReference>
-      <NativeReference Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework">
-        <Kind>Framework</Kind>
-        <ForceLoad>true</ForceLoad>
-      </NativeReference>
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBAEMKit.xcframework/$(_KapuschFacebookInteropSlice)/FBAEMKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBAEMKit_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKCoreKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKCoreKit_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit_Basics.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKCoreKit_Basics.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKCoreKit_Basics_PrivacyInfo.xcprivacy" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKLoginKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKLoginKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKLoginKit_PrivacyInfo.xcprivacy" Condition="'$(_KapuschFacebookLoginEnabled)' == 'True'" />
+	  <BundleResource Include="$(_KapuschFacebookInteropFbDir)/FBSDKShareKit.xcframework/$(_KapuschFacebookInteropSlice)/FBSDKShareKit.framework/PrivacyInfo.xcprivacy" LogicalName="FBSDKShareKit_PrivacyInfo.xcprivacy" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'" />
     </ItemGroup>
   </Target>
 </Project>

@@ -28,7 +28,22 @@ Call the interop hooks in your `AppDelegate`:
 - On launch: `NativeFacebookLogin.Initialize(app, options)`
 - On URL open: `NativeFacebookLogin.HandleOpenUrl(app, url, options)`
 
-## 3) Limited Login
+These hooks apply to `KapuschFacebookFeatures=Login`. For Share-only builds,
+disable Meta automatic initialization and call
+`NativeFacebookShare.ConfigureAndInitialize(app.Handle, trackingAllowed)` only
+after the ATT decision, immediately before the first share. Then call
+`NativeFacebookShare.SharePhotoAsync(...)`; no caption is accepted.
+
+## 3) Feature selection
+
+- `Login` (default): Login wrapper and LoginKit.
+- `Share`: photo-share wrapper and ShareKit.
+- `Login;Share`: both managed/native entry points.
+
+At SDK 18.0.2, ShareKit's CoreKit dependency requires FBAEMKit. Treat this as a
+privacy-review blocker if the consumer's artifact policy excludes FBAEMKit.
+
+## 4) Limited Login
 
 For Limited Login, pass:
 - `FacebookTrackingMode.Limited`
@@ -38,7 +53,7 @@ The result can contain:
 - `AuthenticationToken`
 - `Nonce`
 
-## 4) Secrets policy
+## 5) Secrets policy
 
 Do not commit real values in this repo.
 Use templates and `.gitignore`d local files for any sample app configuration.

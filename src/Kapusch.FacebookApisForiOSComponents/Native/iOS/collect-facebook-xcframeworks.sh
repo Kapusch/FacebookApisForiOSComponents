@@ -19,7 +19,6 @@ frameworks=(
 	"FBAEMKit.xcframework"
 	"FBSDKCoreKit.xcframework"
 	"FBSDKCoreKit_Basics.xcframework"
-	"FBSDKGamingServicesKit.xcframework"
 	"FBSDKLoginKit.xcframework"
 	"FBSDKShareKit.xcframework"
 )
