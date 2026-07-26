@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Kapusch.Facebook.iOS;
 
-public static unsafe class NativeFacebookShare
+public static unsafe partial class NativeFacebookShare
 {
 	public static void ConfigureAndInitialize(
 		IntPtr uiApplicationHandle,
@@ -13,7 +13,27 @@ public static unsafe class NativeFacebookShare
 		if (uiApplicationHandle == IntPtr.Zero)
 			throw new ArgumentException("UIApplication is required.");
 
-		ResolveConfigureAndInitialize()(uiApplicationHandle, trackingAllowed ? (byte)1 : (byte)0);
+		ConfigureAndInitializeNative(
+			uiApplicationHandle,
+			trackingAllowed ? (byte)1 : (byte)0
+		);
+	}
+
+	public static bool HandleOpenUrl(
+		IntPtr uiApplicationHandle,
+		IntPtr nsUrlHandle,
+		IntPtr optionsHandle
+	)
+	{
+		if (uiApplicationHandle == IntPtr.Zero || nsUrlHandle == IntPtr.Zero)
+			return false;
+
+		return HandleOpenUrlNative(
+				uiApplicationHandle,
+				nsUrlHandle,
+				optionsHandle
+			)
+			!= 0;
 	}
 
 	public static Task<NativeFacebookShareResult> SharePhotoAsync(
@@ -36,7 +56,7 @@ public static unsafe class NativeFacebookShare
 		var imagePathPointer = Marshal.StringToCoTaskMemUTF8(imagePath);
 		try
 		{
-			ResolveSharePhoto()(
+			SharePhotoNative(
 				presentingViewControllerHandle,
 				imagePathPointer,
 				&ShareCallback,
@@ -75,24 +95,27 @@ public static unsafe class NativeFacebookShare
 		}
 	}
 
-	private static IntPtr Resolve(string symbol) =>
-		NativeLibrary.GetExport(NativeLibrary.GetMainProgramHandle(), symbol);
+	[LibraryImport(
+		"__Internal",
+		EntryPoint = "kfb_facebook_share_configure_and_initialize"
+	)]
+	private static partial void ConfigureAndInitializeNative(
+		IntPtr uiApplicationHandle,
+		byte trackingAllowed
+	);
 
-	private static delegate* unmanaged[Cdecl]<IntPtr, byte, void> ResolveConfigureAndInitialize() =>
-		(delegate* unmanaged[Cdecl]<IntPtr, byte, void>)Resolve(
-			"kfb_facebook_share_configure_and_initialize"
-		);
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_share_handle_open_url")]
+	private static partial byte HandleOpenUrlNative(
+		IntPtr uiApplicationHandle,
+		IntPtr nsUrlHandle,
+		IntPtr optionsHandle
+	);
 
-	private static delegate* unmanaged[Cdecl]<
-		IntPtr,
-		IntPtr,
-		delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, void>,
-		IntPtr,
-		void> ResolveSharePhoto() =>
-		(delegate* unmanaged[Cdecl]<
-			IntPtr,
-			IntPtr,
-			delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, void>,
-			IntPtr,
-			void>)Resolve("kfb_facebook_share_photo");
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_share_photo")]
+	private static partial void SharePhotoNative(
+		IntPtr presentingViewControllerHandle,
+		IntPtr imagePath,
+		delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, void> callback,
+		IntPtr context
+	);
 }

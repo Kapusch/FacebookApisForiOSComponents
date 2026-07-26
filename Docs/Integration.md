@@ -33,6 +33,10 @@ disable Meta automatic initialization and call
 `NativeFacebookShare.ConfigureAndInitialize(app.Handle, trackingAllowed)` only
 after the ATT decision, immediately before the first share. Then call
 `NativeFacebookShare.SharePhotoAsync(...)`; no caption is accepted.
+Forward Facebook callback URLs to
+`NativeFacebookShare.HandleOpenUrl(app.Handle, url.Handle, options.Handle)`.
+Share-only host applications should filter by their configured Facebook URL
+scheme before invoking this handler.
 
 ## 3) Feature selection
 

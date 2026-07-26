@@ -145,3 +145,31 @@ public func kfb_facebook_share_photo(
 		)
 	}
 }
+
+@_cdecl("kfb_facebook_share_handle_open_url")
+public func kfb_facebook_share_handle_open_url(
+	_ applicationPtr: UnsafeMutableRawPointer,
+	_ urlPtr: UnsafeMutableRawPointer,
+	_ optionsPtr: UnsafeMutableRawPointer?
+) -> Bool {
+	let application = Unmanaged<UIApplication>
+		.fromOpaque(applicationPtr)
+		.takeUnretainedValue()
+	let url = Unmanaged<NSURL>.fromOpaque(urlPtr).takeUnretainedValue() as URL
+	guard let appID = Bundle.main.infoDictionary?["FacebookAppID"] as? String,
+		url.scheme?.caseInsensitiveCompare("fb\(appID)") == .orderedSame
+	else {
+		return false
+	}
+	let options: NSDictionary? = {
+		guard let optionsPtr else { return nil }
+		return Unmanaged<NSDictionary>.fromOpaque(optionsPtr).takeUnretainedValue()
+	}()
+	let openUrlOptions = options as? [UIApplication.OpenURLOptionsKey: Any] ?? [:]
+
+	return ApplicationDelegate.shared.application(
+		application,
+		open: url,
+		options: openUrlOptions
+	)
+}
