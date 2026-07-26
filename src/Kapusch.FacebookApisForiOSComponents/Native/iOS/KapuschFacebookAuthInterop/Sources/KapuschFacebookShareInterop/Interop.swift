@@ -1,8 +1,23 @@
 import Foundation
+import OSLog
 import UIKit
 
 import FacebookCore
 import FacebookShare
+
+private let shareLogger = Logger(
+	subsystem: Bundle.main.bundleIdentifier ?? "Kapusch.Facebook.iOS",
+	category: "FacebookShare"
+)
+
+private enum FacebookBridgePasteboard {
+	static let dataType = "com.facebook.Facebook.FBAppBridgeType"
+
+	static func clearPendingShareDataWithoutReading() {
+		UIPasteboard.general.setData(Data(), forPasteboardType: dataType)
+		shareLogger.debug("Cleared pending Facebook bridge data without reading the pasteboard.")
+	}
+}
 
 public typealias KapuschFacebookShareCallback = @convention(c) (
 	Int32,
@@ -32,6 +47,7 @@ private func invokeShareCallback(
 private final class ShareDelegate: NSObject, SharingDelegate {
 	let callback: KapuschFacebookShareCallback
 	let context: UnsafeMutableRawPointer
+	private(set) var didFinish = false
 
 	init(callback: @escaping KapuschFacebookShareCallback, context: UnsafeMutableRawPointer) {
 		self.callback = callback
@@ -39,12 +55,20 @@ private final class ShareDelegate: NSObject, SharingDelegate {
 	}
 
 	func sharer(_ sharer: Sharing, didCompleteWithResults results: [String: Any]) {
+		guard !didFinish else { return }
+		didFinish = true
+		shareLogger.info("Facebook share completed.")
 		invokeShareCallback(callback, status: .success, context: context)
 		ShareState.clear()
 	}
 
 	func sharer(_ sharer: Sharing, didFailWithError error: Error) {
+		guard !didFinish else { return }
+		didFinish = true
 		let nsError = error as NSError
+		shareLogger.error(
+			"Facebook share failed. domain=\(nsError.domain, privacy: .public) code=\(nsError.code)"
+		)
 		invokeShareCallback(
 			callback,
 			status: .failed,
@@ -55,6 +79,9 @@ private final class ShareDelegate: NSObject, SharingDelegate {
 	}
 
 	func sharerDidCancel(_ sharer: Sharing) {
+		guard !didFinish else { return }
+		didFinish = true
+		shareLogger.info("Facebook share cancelled.")
 		invokeShareCallback(callback, status: .cancelled, context: context)
 		ShareState.clear()
 	}
@@ -76,6 +103,9 @@ public func kfb_facebook_share_configure_and_initialize(
 	_ applicationPtr: UnsafeMutableRawPointer,
 	_ trackingAllowed: Bool
 ) {
+	shareLogger.debug(
+		"Configuring Facebook Share SDK. trackingAllowed=\(trackingAllowed, privacy: .public)"
+	)
 	Settings.shared.isAutoLogAppEventsEnabled = false
 	Settings.shared.isAdvertiserIDCollectionEnabled = trackingAllowed
 	Settings.shared.isAdvertiserTrackingEnabled = trackingAllowed
@@ -100,7 +130,9 @@ public func kfb_facebook_share_photo(
 	_ callback: @escaping KapuschFacebookShareCallback,
 	_ context: UnsafeMutableRawPointer
 ) {
+	shareLogger.debug("Facebook photo share requested.")
 	guard ShareState.dialog == nil else {
+		shareLogger.error("Facebook share rejected because another request is in progress.")
 		invokeShareCallback(
 			callback,
 			status: .failed,
@@ -112,6 +144,7 @@ public func kfb_facebook_share_photo(
 
 	let imagePath = String(cString: imagePathPtr)
 	guard let image = UIImage(contentsOfFile: imagePath) else {
+		shareLogger.error("Facebook share could not decode the image.")
 		invokeShareCallback(
 			callback,
 			status: .failed,
@@ -133,9 +166,14 @@ public func kfb_facebook_share_photo(
 		content: content,
 		delegate: delegate
 	)
+	dialog.mode = .native
 	ShareState.delegate = delegate
 	ShareState.dialog = dialog
-	if !dialog.show() {
+	shareLogger.debug("Facebook ShareDialog canShow=\(dialog.canShow, privacy: .public)")
+	let shown = dialog.show()
+	shareLogger.debug("Facebook ShareDialog show returned \(shown, privacy: .public)")
+	if !shown && !delegate.didFinish {
+		shareLogger.error("Facebook ShareDialog was unavailable without a delegate error.")
 		ShareState.clear()
 		invokeShareCallback(
 			callback,
@@ -144,4 +182,36 @@ public func kfb_facebook_share_photo(
 			context: context
 		)
 	}
+}
+
+@_cdecl("kfb_facebook_share_handle_open_url")
+public func kfb_facebook_share_handle_open_url(
+	_ applicationPtr: UnsafeMutableRawPointer,
+	_ urlPtr: UnsafeMutableRawPointer,
+	_ optionsPtr: UnsafeMutableRawPointer?
+) -> Bool {
+	let application = Unmanaged<UIApplication>
+		.fromOpaque(applicationPtr)
+		.takeUnretainedValue()
+	let url = Unmanaged<NSURL>.fromOpaque(urlPtr).takeUnretainedValue() as URL
+	guard let appID = Bundle.main.infoDictionary?["FacebookAppID"] as? String,
+		url.scheme?.caseInsensitiveCompare("fb\(appID)") == .orderedSame
+	else {
+		return false
+	}
+	let options: NSDictionary? = {
+		guard let optionsPtr else { return nil }
+		return Unmanaged<NSDictionary>.fromOpaque(optionsPtr).takeUnretainedValue()
+	}()
+	let openUrlOptions = options as? [UIApplication.OpenURLOptionsKey: Any] ?? [:]
+
+	if ShareState.dialog != nil {
+		FacebookBridgePasteboard.clearPendingShareDataWithoutReading()
+	}
+
+	return ApplicationDelegate.shared.application(
+		application,
+		open: url,
+		options: openUrlOptions
+	)
 }
