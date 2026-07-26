@@ -10,6 +10,15 @@ private let shareLogger = Logger(
 	category: "FacebookShare"
 )
 
+private enum FacebookBridgePasteboard {
+	static let dataType = "com.facebook.Facebook.FBAppBridgeType"
+
+	static func clearPendingShareDataWithoutReading() {
+		UIPasteboard.general.setData(Data(), forPasteboardType: dataType)
+		shareLogger.debug("Cleared pending Facebook bridge data without reading the pasteboard.")
+	}
+}
+
 public typealias KapuschFacebookShareCallback = @convention(c) (
 	Int32,
 	UnsafePointer<CChar>?,
@@ -195,6 +204,10 @@ public func kfb_facebook_share_handle_open_url(
 		return Unmanaged<NSDictionary>.fromOpaque(optionsPtr).takeUnretainedValue()
 	}()
 	let openUrlOptions = options as? [UIApplication.OpenURLOptionsKey: Any] ?? [:]
+
+	if ShareState.dialog != nil {
+		FacebookBridgePasteboard.clearPendingShareDataWithoutReading()
+	}
 
 	return ApplicationDelegate.shared.application(
 		application,
