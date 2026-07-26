@@ -4,6 +4,7 @@ set -euo pipefail
 
 project="tests/FeatureSelection.proj"
 share_source="src/Kapusch.FacebookApisForiOSComponents/Facebook/NativeFacebookShare.iOS.cs"
+share_interop_source="src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Sources/KapuschFacebookShareInterop/Interop.swift"
 
 if rg -F "NativeLibrary.GetExport" "$share_source" >/dev/null; then
 	echo "Facebook Share must use static __Internal imports so iOS retains its native symbols." >&2
@@ -17,6 +18,11 @@ for symbol in \
 	rg -F "EntryPoint = \"$symbol\"" "$share_source" >/dev/null \
 		|| { echo "Missing static Facebook Share import: $symbol" >&2; exit 1; }
 done
+
+rg -F "guard !didFinish else { return }" "$share_interop_source" >/dev/null \
+	|| { echo "Facebook Share callbacks must be idempotent." >&2; exit 1; }
+rg -F "if !shown && !delegate.didFinish" "$share_interop_source" >/dev/null \
+	|| { echo "Facebook Share must not invoke a second callback after ShareKit reports a synchronous failure." >&2; exit 1; }
 
 dotnet msbuild "$project" -t:ValidateFeatureSelection -p:ExpectedLoginEnabled=True -p:ExpectedShareEnabled=False
 
