@@ -157,6 +157,7 @@ public func kfb_facebook_share_photo(
 		content: content,
 		delegate: delegate
 	)
+	dialog.mode = .native
 	ShareState.delegate = delegate
 	ShareState.dialog = dialog
 	shareLogger.debug("Facebook ShareDialog canShow=\(dialog.canShow, privacy: .public)")

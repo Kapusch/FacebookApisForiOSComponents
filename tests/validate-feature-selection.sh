@@ -23,6 +23,8 @@ rg -F "guard !didFinish else { return }" "$share_interop_source" >/dev/null \
 	|| { echo "Facebook Share callbacks must be idempotent." >&2; exit 1; }
 rg -F "if !shown && !delegate.didFinish" "$share_interop_source" >/dev/null \
 	|| { echo "Facebook Share must not invoke a second callback after ShareKit reports a synchronous failure." >&2; exit 1; }
+rg -F "dialog.mode = .native" "$share_interop_source" >/dev/null \
+	|| { echo "Facebook photo share must use the native Facebook dialog instead of the deprecated iOS share sheet." >&2; exit 1; }
 
 dotnet msbuild "$project" -t:ValidateFeatureSelection -p:ExpectedLoginEnabled=True -p:ExpectedShareEnabled=False
 
