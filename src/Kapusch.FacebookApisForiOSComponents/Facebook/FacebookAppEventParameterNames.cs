@@ -247,10 +247,3 @@ public static class FacebookAppEventUserDataTypes
 	/// <summary>Advertiser-side user identifier. iOS only in the native SDK API. FBSDKAppEventExternalId</summary>
 	public const string ExternalId = "external_id";
 }
-
-/// <summary>Data processing options for <see cref="FacebookAppEvents.SetDataProcessingOptions"/>.</summary>
-public static class FacebookDataProcessingOptions
-{
-	/// <summary>Limited Data Use. Pass an empty array to explicitly not enable it.</summary>
-	public const string LimitedDataUse = "LDU";
-}
