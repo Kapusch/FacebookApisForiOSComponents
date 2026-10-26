@@ -24,5 +24,16 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- App Events consent gating: everything off until the app enables it at run time.
+	     Add FacebookAppID, FacebookClientToken, FacebookDisplayName and the fb<APP_ID> URL
+	     scheme to the generated (gitignored) Info.plist to talk to Meta. -->
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<false/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<false/>
+	<key>FBSDKAutoLogMetaDataEnabled</key>
+	<false/>
+	<key>FBSDKAutoLogProductImprovementEnabled</key>
+	<false/>
 </dict>
 </plist>
