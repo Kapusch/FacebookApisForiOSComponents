@@ -1,103 +1,146 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Builds the Objective-C interop static libraries against the pinned Facebook
+# iOS SDK xcframeworks and wraps each one in an xcframework:
+#   build/kfb.xcframework       (Login)
+#   build/kfbshare.xcframework  (Share)
+# It also leaves the stripped SDK xcframeworks in build/fb/.
+#
+# The facades only use the SDK's Objective-C headers (including the generated
+# *-Swift.h headers). They therefore compile with any recent Xcode, even when
+# Meta built the binaries with a newer Swift compiler than the local one.
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_DIR="$ROOT_DIR/KapuschFacebookAuthInterop"
+SOURCES_DIR="$PACKAGE_DIR/Sources"
+HEADERS_DIR="$PACKAGE_DIR/include"
 BUILD_DIR="$ROOT_DIR/build"
-
-XCFRAMEWORK_OUT="$BUILD_DIR/kfb.xcframework"
-SHARE_XCFRAMEWORK_OUT="$BUILD_DIR/kfbshare.xcframework"
+FB_DIR="$BUILD_DIR/fb"
+OBJ_DIR="$BUILD_DIR/obj"
+MODULE_CACHE_DIR="$BUILD_DIR/clang-module-cache"
+DEPLOYMENT_TARGET="15.0"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
+bash "$ROOT_DIR/restore-facebook-xcframeworks.sh"
+bash "$ROOT_DIR/collect-facebook-xcframeworks.sh"
+
 SDK_IPHONEOS_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
 SDK_SIMULATOR_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 
-SCRATCH_DIR="$BUILD_DIR/spm"
+# Prints the slice directory of an xcframework for "device" or "simulator".
+slice_dir() {
+	local xcframework="$1"
+	local platform="$2"
+	local candidate
+	for candidate in "$xcframework"/ios-*; do
+		[ -d "$candidate" ] || continue
+		case "$(basename "$candidate")" in
+			*-maccatalyst) continue ;;
+			*-simulator)
+				if [ "$platform" = "simulator" ]; then
+					echo "$candidate"
+					return 0
+				fi
+				;;
+			*)
+				if [ "$platform" = "device" ]; then
+					echo "$candidate"
+					return 0
+				fi
+				;;
+		esac
+	done
+	echo "No $platform slice found in $xcframework" >&2
+	return 1
+}
 
-echo "[KapuschFacebookAuthInterop] Building (iOS device arm64)..."
-swift build \
-	--package-path "$PACKAGE_DIR" \
-	--scratch-path "$SCRATCH_DIR/iphoneos" \
-	-c release \
-	--sdk "$SDK_IPHONEOS_PATH" \
-	--triple "arm64-apple-ios15.0"
+framework_search_flags() {
+	local platform="$1"
+	local xcframework
+	for xcframework in "$FB_DIR"/*.xcframework; do
+		printf -- '-F\n%s\n' "$(slice_dir "$xcframework" "$platform")"
+	done
+}
 
-echo "[KapuschFacebookAuthInterop] Building (iOS simulator arm64)..."
-swift build \
-	--package-path "$PACKAGE_DIR" \
-	--scratch-path "$SCRATCH_DIR/iphonesimulator-arm64" \
-	-c release \
-	--sdk "$SDK_SIMULATOR_PATH" \
-	--triple "arm64-apple-ios15.0-simulator"
+# compile_library <library name> <source dir> <platform> <arch> <sdk path> <triple> <output .a>
+compile_library() {
+	local library="$1"
+	local source_dir="$2"
+	local platform="$3"
+	local arch="$4"
+	local sdk_path="$5"
+	local triple="$6"
+	local output="$7"
+	local obj_dir="$OBJ_DIR/$library/$platform-$arch"
+	local search_flags=()
+	local source
+	local objects=()
 
-echo "[KapuschFacebookAuthInterop] Building (iOS simulator x86_64)..."
-swift build \
-	--package-path "$PACKAGE_DIR" \
-	--scratch-path "$SCRATCH_DIR/iphonesimulator-x86_64" \
-	-c release \
-	--sdk "$SDK_SIMULATOR_PATH" \
-	--triple "x86_64-apple-ios15.0-simulator"
+	while IFS= read -r flag; do
+		search_flags+=("$flag")
+	done < <(framework_search_flags "$platform")
 
-IOS_LIB="$(find "$SCRATCH_DIR/iphoneos" -maxdepth 4 -path "*/release/libKapuschFacebookAuthInterop.a" | head -n 1)"
-SIM_ARM64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-arm64" -maxdepth 4 -path "*/release/libKapuschFacebookAuthInterop.a" | head -n 1)"
-SIM_X64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-x86_64" -maxdepth 4 -path "*/release/libKapuschFacebookAuthInterop.a" | head -n 1)"
+	mkdir -p "$obj_dir"
+	for source in "$source_dir"/*.m; do
+		local object="$obj_dir/$(basename "${source%.m}").o"
+		xcrun clang \
+			-c "$source" \
+			-o "$object" \
+			-target "$triple" \
+			-isysroot "$sdk_path" \
+			-fobjc-arc \
+			-fmodules \
+			-fmodules-cache-path="$MODULE_CACHE_DIR" \
+			-O2 \
+			-Wall \
+			-Werror \
+			-I "$HEADERS_DIR" \
+			"${search_flags[@]}"
+		objects+=("$object")
+	done
 
-SIM_UNIVERSAL_LIB="$BUILD_DIR/libKapuschFacebookAuthInterop_simulator_universal.a"
-SHARE_IOS_LIB="$(find "$SCRATCH_DIR/iphoneos" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
-SHARE_SIM_ARM64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-arm64" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
-SHARE_SIM_X64_LIB="$(find "$SCRATCH_DIR/iphonesimulator-x86_64" -maxdepth 4 -path "*/release/libKapuschFacebookShareInterop.a" | head -n 1)"
-SHARE_SIM_UNIVERSAL_LIB="$BUILD_DIR/libKapuschFacebookShareInterop_simulator_universal.a"
-echo "[KapuschFacebookAuthInterop] Creating universal simulator static library..."
-if [ ! -f "$SIM_ARM64_LIB" ]; then
-	echo "Expected simulator (arm64) static library not found: $SIM_ARM64_LIB" >&2
-	exit 1
-fi
+	mkdir -p "$(dirname "$output")"
+	xcrun libtool -static -no_warning_for_no_symbols -o "$output" "${objects[@]}"
+}
 
-if [ ! -f "$SIM_X64_LIB" ]; then
-	echo "Expected simulator (x86_64) static library not found: $SIM_X64_LIB" >&2
-	exit 1
-fi
+# build_xcframework <library name> <source dir> <output xcframework>
+build_xcframework() {
+	local library="$1"
+	local source_dir="$2"
+	local xcframework_out="$3"
+	local lib_dir="$BUILD_DIR/lib/$library"
+	local device_lib="$lib_dir/iphoneos/lib$library.a"
+	local sim_arm64_lib="$lib_dir/iphonesimulator-arm64/lib$library.a"
+	local sim_x64_lib="$lib_dir/iphonesimulator-x86_64/lib$library.a"
+	local sim_universal_lib="$lib_dir/iphonesimulator/lib$library.a"
 
-lipo -create "$SIM_ARM64_LIB" "$SIM_X64_LIB" -output "$SIM_UNIVERSAL_LIB"
-lipo -create "$SHARE_SIM_ARM64_LIB" "$SHARE_SIM_X64_LIB" -output "$SHARE_SIM_UNIVERSAL_LIB"
+	echo "[$library] Building (iOS device arm64)..."
+	compile_library "$library" "$source_dir" device arm64 "$SDK_IPHONEOS_PATH" \
+		"arm64-apple-ios$DEPLOYMENT_TARGET" "$device_lib"
 
-HEADERS_DIR="$PACKAGE_DIR/include"
+	echo "[$library] Building (iOS simulator arm64)..."
+	compile_library "$library" "$source_dir" simulator arm64 "$SDK_SIMULATOR_PATH" \
+		"arm64-apple-ios$DEPLOYMENT_TARGET-simulator" "$sim_arm64_lib"
 
-if [ -z "$IOS_LIB" ] || [ ! -f "$IOS_LIB" ]; then
-	echo "Expected iOS static library not found: $IOS_LIB" >&2
-	exit 1
-fi
+	echo "[$library] Building (iOS simulator x86_64)..."
+	compile_library "$library" "$source_dir" simulator x86_64 "$SDK_SIMULATOR_PATH" \
+		"x86_64-apple-ios$DEPLOYMENT_TARGET-simulator" "$sim_x64_lib"
 
-if [ ! -f "$SIM_UNIVERSAL_LIB" ]; then
-	echo "Expected simulator static library not found: $SIM_UNIVERSAL_LIB" >&2
-	exit 1
-fi
+	echo "[$library] Creating universal simulator static library..."
+	mkdir -p "$(dirname "$sim_universal_lib")"
+	lipo -create "$sim_arm64_lib" "$sim_x64_lib" -output "$sim_universal_lib"
 
-if [ -z "$SHARE_IOS_LIB" ] || [ ! -f "$SHARE_IOS_LIB" ]; then
-	echo "Expected share iOS static library not found: $SHARE_IOS_LIB" >&2
-	exit 1
-fi
+	echo "[$library] Creating xcframework..."
+	xcodebuild -create-xcframework \
+		-library "$device_lib" -headers "$HEADERS_DIR" \
+		-library "$sim_universal_lib" -headers "$HEADERS_DIR" \
+		-output "$xcframework_out" >/dev/null
 
-if [ ! -f "$SHARE_SIM_UNIVERSAL_LIB" ]; then
-	echo "Expected share simulator static library not found: $SHARE_SIM_UNIVERSAL_LIB" >&2
-	exit 1
-fi
+	echo "[$library] Done: $xcframework_out"
+}
 
-echo "[KapuschFacebookAuthInterop] Creating xcframework..."
-xcodebuild -create-xcframework \
-	-library "$IOS_LIB" -headers "$HEADERS_DIR" \
-	-library "$SIM_UNIVERSAL_LIB" -headers "$HEADERS_DIR" \
-	-output "$XCFRAMEWORK_OUT"
-
-echo "[KapuschFacebookShareInterop] Creating xcframework..."
-xcodebuild -create-xcframework \
-	-library "$SHARE_IOS_LIB" -headers "$HEADERS_DIR" \
-	-library "$SHARE_SIM_UNIVERSAL_LIB" -headers "$HEADERS_DIR" \
-	-output "$SHARE_XCFRAMEWORK_OUT"
-
-bash "$ROOT_DIR/collect-facebook-xcframeworks.sh"
-
-echo "[KapuschFacebookAuthInterop] Done: $XCFRAMEWORK_OUT"
-echo "[KapuschFacebookShareInterop] Done: $SHARE_XCFRAMEWORK_OUT"
+build_xcframework KapuschFacebookAuthInterop "$SOURCES_DIR/KapuschFacebookAuthInterop" "$BUILD_DIR/kfb.xcframework"
+build_xcframework KapuschFacebookShareInterop "$SOURCES_DIR/KapuschFacebookShareInterop" "$BUILD_DIR/kfbshare.xcframework"

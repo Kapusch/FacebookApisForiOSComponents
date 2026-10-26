@@ -88,12 +88,12 @@ jobs:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj') }}
 
-      - name: Cache SwiftPM scratch
+      - name: Cache pinned Facebook SDK archives
         uses: actions/cache@v4
         with:
           path: |
-            src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/spm
-          key: ${{ runner.os }}-swiftpm-${{ hashFiles('src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Package.resolved') }}
+            src/Kapusch.FacebookApisForiOSComponents/Native/iOS/.cache/downloads
+          key: ${{ runner.os }}-facebook-ios-sdk-${{ hashFiles('DependencyLocks/iOS/lockstate.txt') }}
 
       - name: Build iOS wrapper
         run: |

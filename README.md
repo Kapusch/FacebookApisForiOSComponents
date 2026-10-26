@@ -21,6 +21,16 @@ Facebook iOS SDK 18.0.2 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
 A consumer that forbids `FBAEMKit` must block Store delivery; this repository
 does not strip or conceal the dependency.
 
+## Upstream dependency ingestion
+
+- The repo build downloads Meta's prebuilt **dynamic** xcframework archives from the
+  `facebook/facebook-ios-sdk` GitHub release named in `DependencyLocks/iOS/lockstate.txt`.
+- Each archive is verified against the SHA-256 in that lock file (the same value as the
+  upstream `Package.swift` `remoteChecksum`) before it is extracted.
+- The wrappers are Objective-C and compile against the SDK's Objective-C headers only.
+  They do not need the Swift compiler release Meta used to build the binaries.
+- Consuming apps never download anything: the NuGet already contains every xcframework.
+
 ## Third-party licenses
 
 See `THIRD_PARTY_NOTICES.md`.
@@ -38,7 +48,7 @@ Prereqs:
 - Xcode installed (for `xcrun`, iOS SDKs)
 - .NET SDK 10 (`global.json` pins 10.0.100)
 
-Build the native wrapper:
+Build the native wrappers (restores the pinned SDK archives first):
 - `bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh`
 
 Collect Facebook xcframeworks for packing:
