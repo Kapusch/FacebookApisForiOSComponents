@@ -18,6 +18,12 @@
 - `Docs/` — integration docs
 - `samples/` — optional sample template (no secrets committed)
 
+## Validation
+- `bash tests/validate-feature-selection.sh` — feature selection and wrapper source invariants.
+- `python3 scripts/validate-package.py` — packed layout, native exports, App Events bindings and constants.
+- `python3 scripts/verify-public.py` — no consuming-app names or real Facebook credentials in tracked files.
+- When package contents or native entry points change, update `scripts/validate-package.py` in the same commit.
+
 ## Safety
 - Do not add new dependency ingestion paths without documenting them in `README.md`.
 - Do not commit real app ids/secrets.

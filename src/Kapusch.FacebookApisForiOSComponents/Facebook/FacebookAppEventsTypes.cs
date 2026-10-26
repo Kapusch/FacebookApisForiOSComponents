@@ -47,3 +47,10 @@ public sealed record FacebookAppEventsUserData
 	/// <summary>Country code (ISO 3166-1 alpha-2).</summary>
 	public string? Country { get; init; }
 }
+
+/// <summary>Data processing options for <see cref="FacebookAppEvents.SetDataProcessingOptions"/>.</summary>
+public static class FacebookDataProcessingOptions
+{
+	/// <summary>Limited Data Use. Pass an empty array to explicitly not enable it.</summary>
+	public const string LimitedDataUse = "LDU";
+}
