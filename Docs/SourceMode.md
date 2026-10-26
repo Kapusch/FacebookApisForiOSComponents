@@ -18,7 +18,10 @@ Use GitHub Packages pre-release and consume the package.
 - `bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh`
 
 This produces:
-- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/kfb.xcframework`
+- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/kfb.xcframework` (Login)
+- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/kfbshare.xcframework` (Share)
+- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/kfbsharestub.xcframework` (Share placeholder)
+- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/kfbappevents.xcframework` (App Events)
 - `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build/fb/*.xcframework`
 
 3) Add a project reference from your app to:
@@ -28,6 +31,8 @@ This produces:
 4) If you build the repo in a different layout, you can set MSBuild properties on the consuming project:
 
 - `InteropIosWrapperDir` (path to `kfb.xcframework`)
+- `InteropIosShareWrapperDir`, `InteropIosShareStubWrapperDir`, `InteropIosAppEventsWrapperDir`
+  (paths to `kfbshare`, `kfbsharestub` and `kfbappevents` xcframeworks)
 - `FacebookIosFrameworksDir` (path to the folder containing `fb/*.xcframework`)
 
 Notes:
