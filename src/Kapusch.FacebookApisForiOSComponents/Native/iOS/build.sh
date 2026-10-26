@@ -6,6 +6,7 @@ set -euo pipefail
 #   build/kfb.xcframework       (Login)
 #   build/kfbshare.xcframework  (Share)
 #   build/kfbsharestub.xcframework (Share entry points when Share is not selected)
+#   build/kfbappevents.xcframework (App Events, linked with every selection)
 # It also leaves the stripped SDK xcframeworks in build/fb/.
 #
 # The facades only use the SDK's Objective-C headers (including the generated
@@ -146,3 +147,4 @@ build_xcframework() {
 build_xcframework KapuschFacebookAuthInterop "$SOURCES_DIR/KapuschFacebookAuthInterop" "$BUILD_DIR/kfb.xcframework"
 build_xcframework KapuschFacebookShareInterop "$SOURCES_DIR/KapuschFacebookShareInterop" "$BUILD_DIR/kfbshare.xcframework"
 build_xcframework KapuschFacebookShareStub "$SOURCES_DIR/KapuschFacebookShareStub" "$BUILD_DIR/kfbsharestub.xcframework"
+build_xcframework KapuschFacebookAppEventsInterop "$SOURCES_DIR/KapuschFacebookAppEventsInterop" "$BUILD_DIR/kfbappevents.xcframework"

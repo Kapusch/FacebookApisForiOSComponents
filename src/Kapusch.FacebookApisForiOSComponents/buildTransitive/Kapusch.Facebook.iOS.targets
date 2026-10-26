@@ -19,6 +19,7 @@
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
 	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
+	  <_KapuschFacebookAppEventsIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbappevents.xcframework'))</_KapuschFacebookAppEventsIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
       <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
       <!-- SDK 19 ships an arm64 + arm64e device slice; older SDKs ship arm64 only. -->
@@ -37,6 +38,10 @@
 	  Condition="'$(_KapuschFacebookShareEnabled)' != 'True' and !Exists('$(_KapuschFacebookShareStubIosWrapper)')"
 	  Text="Kapusch.Facebook.iOS source-mode: missing share placeholder xcframework at '$(_KapuschFacebookShareStubIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
 	/>
+	<Error
+	  Condition="!Exists('$(_KapuschFacebookAppEventsIosWrapper)')"
+	  Text="Kapusch.Facebook.iOS source-mode: missing App Events wrapper xcframework at '$(_KapuschFacebookAppEventsIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
+	/>
     <Error
       Condition="!Exists('$(_KapuschFacebookInteropFbDir)')"
       Text="Kapusch.Facebook.iOS source-mode: missing Facebook xcframeworks dir at '$(_KapuschFacebookInteropFbDir)'. Run src/Kapusch.FacebookApisForiOSComponents/Native/iOS/collect-facebook-xcframeworks.sh."
@@ -52,6 +57,11 @@
 	  </NativeReference>
 	  <!-- NativeFacebookShare uses static __Internal imports, so its symbols must link even when Share is not selected. -->
 	  <NativeReference Include="$(_KapuschFacebookShareStubIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' != 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
+	  <!-- App Events only needs FBSDKCoreKit, which every selection links, and FacebookAppEvents uses static __Internal imports. -->
+	  <NativeReference Include="$(_KapuschFacebookAppEventsIosWrapper)">
 		<Kind>Static</Kind>
 		<ForceLoad>true</ForceLoad>
 	  </NativeReference>
@@ -91,6 +101,7 @@
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
 	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
+	  <_KapuschFacebookAppEventsIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbappevents.xcframework'))</_KapuschFacebookAppEventsIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
       <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
       <!-- SDK 19 ships an arm64 + arm64e device slice; older SDKs ship arm64 only. -->
@@ -108,6 +119,11 @@
 	  </NativeReference>
 	  <!-- NativeFacebookShare uses static __Internal imports, so its symbols must link even when Share is not selected. -->
 	  <NativeReference Include="$(_KapuschFacebookShareStubIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' != 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
+	  <!-- App Events only needs FBSDKCoreKit, which every selection links, and FacebookAppEvents uses static __Internal imports. -->
+	  <NativeReference Include="$(_KapuschFacebookAppEventsIosWrapper)">
 		<Kind>Static</Kind>
 		<ForceLoad>true</ForceLoad>
 	  </NativeReference>
