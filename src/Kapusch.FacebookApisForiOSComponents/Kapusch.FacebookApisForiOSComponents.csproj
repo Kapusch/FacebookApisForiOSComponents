@@ -26,6 +26,10 @@
 	  Condition="'$(InteropIosShareWrapperDir)' == '' and Exists('Native/iOS/build/kfbshare.xcframework')"
 	  >Native/iOS/build/kfbshare.xcframework</InteropIosShareWrapperDir
 	>
+	<InteropIosShareStubWrapperDir
+	  Condition="'$(InteropIosShareStubWrapperDir)' == '' and Exists('Native/iOS/build/kfbsharestub.xcframework')"
+	  >Native/iOS/build/kfbsharestub.xcframework</InteropIosShareStubWrapperDir
+	>
     <FacebookIosFrameworksDir
       Condition="'$(FacebookIosFrameworksDir)' == '' and Exists('Native/iOS/build/fb')"
       >Native/iOS/build/fb</FacebookIosFrameworksDir
@@ -53,6 +57,9 @@
 	<ItemGroup Condition="'$(InteropIosShareWrapperDir)' != '' and Exists('$(InteropIosShareWrapperDir)')">
 		<None Include="$(InteropIosShareWrapperDir)/**" Pack="true" PackagePath="kfbshare.xcframework/" />
 	</ItemGroup>
+	<ItemGroup Condition="'$(InteropIosShareStubWrapperDir)' != '' and Exists('$(InteropIosShareStubWrapperDir)')">
+		<None Include="$(InteropIosShareStubWrapperDir)/**" Pack="true" PackagePath="kfbsharestub.xcframework/" />
+	</ItemGroup>
   <ItemGroup Condition="'$(FacebookIosFrameworksDir)' != '' and Exists('$(FacebookIosFrameworksDir)')">
     <None Include="$(FacebookIosFrameworksDir)/**" Pack="true" PackagePath="fb/" />
   </ItemGroup>
@@ -68,6 +75,10 @@
 	<Error
 	  Condition="'$(InteropIosShareWrapperDir)' == '' or !Exists('$(InteropIosShareWrapperDir)')"
 	  Text="Missing iOS share wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareWrapperDir."
+	/>
+	<Error
+	  Condition="'$(InteropIosShareStubWrapperDir)' == '' or !Exists('$(InteropIosShareStubWrapperDir)')"
+	  Text="Missing iOS share placeholder. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareStubWrapperDir."
 	/>
     <Error
       Condition="'$(FacebookIosFrameworksDir)' == '' or !Exists('$(FacebookIosFrameworksDir)')"
