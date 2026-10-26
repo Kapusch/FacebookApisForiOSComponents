@@ -4,7 +4,7 @@ set -euo pipefail
 
 project="tests/FeatureSelection.proj"
 share_source="src/Kapusch.FacebookApisForiOSComponents/Facebook/NativeFacebookShare.iOS.cs"
-share_interop_source="src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Sources/KapuschFacebookShareInterop/Interop.swift"
+share_interop_source="src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Sources/KapuschFacebookShareInterop/Interop.m"
 
 contains_fixed_text() {
 	local pattern="$1"
@@ -30,18 +30,20 @@ for symbol in \
 		|| { echo "Missing static Facebook Share import: $symbol" >&2; exit 1; }
 done
 
-contains_fixed_text "guard !didFinish else { return }" "$share_interop_source" \
+contains_fixed_text "if (_didFinish) {" "$share_interop_source" \
 	|| { echo "Facebook Share callbacks must be idempotent." >&2; exit 1; }
-contains_fixed_text "if !shown && !delegate.didFinish" "$share_interop_source" \
+contains_fixed_text "if (!shown && !delegate.didFinish)" "$share_interop_source" \
 	|| { echo "Facebook Share must not invoke a second callback after ShareKit reports a synchronous failure." >&2; exit 1; }
-contains_fixed_text "dialog.mode = .native" "$share_interop_source" \
+contains_fixed_text "dialog.mode = FBSDKShareDialogModeNative;" "$share_interop_source" \
 	|| { echo "Facebook photo share must use the native Facebook dialog instead of the deprecated iOS share sheet." >&2; exit 1; }
-contains_fixed_text "FacebookBridgePasteboard.clearPendingShareDataWithoutReading()" "$share_interop_source" \
+contains_fixed_text "KFBClearPendingShareDataWithoutReading();" "$share_interop_source" \
 	|| { echo "Facebook native share callbacks must clear bridge data without triggering an iOS paste read." >&2; exit 1; }
-if contains_fixed_text "data(forPasteboardType:" "$share_interop_source"; then
-	echo "Facebook Share wrapper must never read the general pasteboard." >&2
-	exit 1
-fi
+for pasteboard_read in "dataForPasteboardType:" "valueForPasteboardType:"; do
+	if contains_fixed_text "$pasteboard_read" "$share_interop_source"; then
+		echo "Facebook Share wrapper must never read the general pasteboard." >&2
+		exit 1
+	fi
+done
 
 dotnet msbuild "$project" -t:ValidateFeatureSelection -p:ExpectedLoginEnabled=True -p:ExpectedShareEnabled=False
 

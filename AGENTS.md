@@ -8,11 +8,13 @@
 - Public OSS repo: keep docs/sample generic and not app-specific.
 - The NuGet ships the required `xcframework`s and references them via `NativeReference`.
 - Consuming apps must not download native deps at build time.
-- The repo may use SwiftPM during CI/build to fetch the upstream Facebook iOS SDK, but consuming apps must not download native deps at build time.
+- The repo build downloads the upstream Facebook iOS SDK release xcframeworks pinned (URL + SHA-256) in `DependencyLocks/iOS/lockstate.txt`; consuming apps must not download native deps at build time.
+- The native facades are Objective-C and use only the SDK's Objective-C headers, so they do not depend on the Swift compiler release Meta used for the binaries.
 
 ## Repo layout
 - `src/Kapusch.FacebookApisForiOSComponents/` — NuGet project (managed API + buildTransitive MSBuild)
-- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/` — Swift wrapper source + scripts (repo-only)
+- `src/Kapusch.FacebookApisForiOSComponents/Native/iOS/` — Objective-C wrapper source + scripts (repo-only)
+- `DependencyLocks/iOS/lockstate.txt` — pinned Facebook iOS SDK artifacts
 - `Docs/` — integration docs
 - `samples/` — optional sample template (no secrets committed)
 

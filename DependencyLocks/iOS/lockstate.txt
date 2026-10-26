@@ -1,0 +1,10 @@
+# Pinned Facebook iOS SDK release artifacts (dynamic xcframeworks).
+# Format: <url> <sha256> <filename>
+# The SHA-256 values equal the `remoteChecksum` values of the upstream
+# Package.swift at the same tag.
+
+https://github.com/facebook/facebook-ios-sdk/releases/download/v18.0.2/FBSDKCoreKit_Basics-Dynamic_XCFramework.zip c57eb4255c86b60ac0a19cd4c42694220f41985e104ced9cb1c998b650de1bf3 FBSDKCoreKit_Basics-Dynamic_XCFramework.zip
+https://github.com/facebook/facebook-ios-sdk/releases/download/v18.0.2/FBAEMKit-Dynamic_XCFramework.zip 2a2409a08917b6cfab27a66333ecb73c27b8852d45b2985e4281f68554c0dd5f FBAEMKit-Dynamic_XCFramework.zip
+https://github.com/facebook/facebook-ios-sdk/releases/download/v18.0.2/FBSDKCoreKit-Dynamic_XCFramework.zip a647fa24789d5c579ca8c7088c9394d5b410194d8c7e269f8d3f7cf3c33279fd FBSDKCoreKit-Dynamic_XCFramework.zip
+https://github.com/facebook/facebook-ios-sdk/releases/download/v18.0.2/FBSDKLoginKit-Dynamic_XCFramework.zip 0f984f04366fcc141e901de6c635fef40c7c496c015c0d1121e03c5913431d52 FBSDKLoginKit-Dynamic_XCFramework.zip
+https://github.com/facebook/facebook-ios-sdk/releases/download/v18.0.2/FBSDKShareKit-Dynamic_XCFramework.zip dad67fc33428f9c793252a71607c08c6ce9748b6804d0b4241c63ab444c8fef8 FBSDKShareKit-Dynamic_XCFramework.zip
