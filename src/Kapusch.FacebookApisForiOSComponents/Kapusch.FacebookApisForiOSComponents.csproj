@@ -7,7 +7,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);Native/**</DefaultItemExcludes>
     <PackageId>Kapusch.Facebook.iOS</PackageId>
     <Authors>Kapusch</Authors>
-    <Description>Facebook iOS auth interop wrapper + classic xcframework packaging.</Description>
+    <Description>Facebook iOS SDK for .NET iOS: Login, photo Share and Meta App Events interop with bundled xcframeworks.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Kapusch/FacebookApisForiOSComponents</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
