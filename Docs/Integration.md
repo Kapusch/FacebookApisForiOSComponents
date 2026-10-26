@@ -53,6 +53,12 @@ leaving unrelated pasteboard content untouched.
 - `Share`: photo-share wrapper and ShareKit.
 - `Login;Share`: both managed/native entry points.
 
+When `Share` is not selected, the package links a small Foundation-only
+placeholder (`kfbsharestub.xcframework`) for the `NativeFacebookShare` entry
+points, because the .NET iOS build always asks the native linker for them.
+Calling `NativeFacebookShare.SharePhotoAsync(...)` then completes with
+`Failed` / `share_feature_not_selected`; no ShareKit code is shipped.
+
 At SDK 18.0.2, ShareKit's CoreKit dependency requires FBAEMKit. Treat this as a
 privacy-review blocker if the consumer's artifact policy excludes FBAEMKit.
 
