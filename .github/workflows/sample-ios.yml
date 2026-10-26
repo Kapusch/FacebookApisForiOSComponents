@@ -19,37 +19,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Xcode 26.0
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "26.0"
+      - name: Select Xcode 26.3
+        # Pinned: the native artifacts must stay consumable by Xcode 26.3 toolchains.
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
-
-      - name: Pin workload update mode (manifests)
-        shell: bash
-        run: |
-          dotnet workload config --update-mode manifests
-          dotnet workload config --update-mode
-
-      - name: Purge incompatible iOS packs (cache defense)
-        shell: bash
-        run: |
-          set -euo pipefail
-          PACKS_DIR="$HOME/.dotnet/packs"
-          for v in 26.2; do
-            if [ -d "$PACKS_DIR" ] && compgen -G "$PACKS_DIR/Microsoft.iOS.*_${v}*" > /dev/null; then
-              echo "Removing cached iOS ${v} packs from $PACKS_DIR"
-              rm -rf "$PACKS_DIR"/Microsoft.iOS.*_${v}*
-            fi
-          done
+          dotnet-version: "10.0.203"
 
       - name: Install iOS workload
         shell: bash
         run: |
-          dotnet workload install ios --skip-manifest-update
+          dotnet workload install ios --version 10.0.203
 
       - name: Diagnostics (.NET + workloads)
         shell: bash

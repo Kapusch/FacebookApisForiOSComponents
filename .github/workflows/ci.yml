@@ -9,20 +9,24 @@ permissions:
 
 jobs:
   build_pack_ios:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select Xcode 26.3
+        # Pinned: the native artifacts must stay consumable by Xcode 26.3 toolchains.
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.203"
 
       - name: Validate feature selection
         run: bash tests/validate-feature-selection.sh
 
       - name: Install iOS workload
         run: |
-          dotnet workload install ios
+          dotnet workload install ios --version 10.0.203
 
       - name: Cache NuGet
         uses: actions/cache@v4
