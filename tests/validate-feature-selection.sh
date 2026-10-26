@@ -38,6 +38,10 @@ contains_fixed_text "dialog.mode = FBSDKShareDialogModeNative;" "$share_interop_
 	|| { echo "Facebook photo share must use the native Facebook dialog instead of the deprecated iOS share sheet." >&2; exit 1; }
 contains_fixed_text "KFBClearPendingShareDataWithoutReading();" "$share_interop_source" \
 	|| { echo "Facebook native share callbacks must clear bridge data without triggering an iOS paste read." >&2; exit 1; }
+for setting in KFBRegistrySettingAutoLogAppEvents KFBRegistrySettingAdvertiserIDCollection KFBRegistrySettingAdvertiserTracking; do
+	contains_fixed_text "KFBExplicitAppEventsSetting($setting) == nil" "$share_interop_source" \
+		|| { echo "Facebook Share must not override the App Events setting $setting configured by the app." >&2; exit 1; }
+done
 for pasteboard_read in "dataForPasteboardType:" "valueForPasteboardType:"; do
 	if contains_fixed_text "$pasteboard_read" "$share_interop_source"; then
 		echo "Facebook Share wrapper must never read the general pasteboard." >&2

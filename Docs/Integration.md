@@ -34,7 +34,10 @@ Call the interop hooks in your `AppDelegate`:
 These hooks apply to `KapuschFacebookFeatures=Login`. For Share-only builds,
 disable Meta automatic initialization and call
 `NativeFacebookShare.ConfigureAndInitialize(app.Handle, trackingAllowed)` only
-after the ATT decision, immediately before the first share. Then call
+after the ATT decision, immediately before the first share.
+`ConfigureAndInitialize` sets automatic app events logging to off and advertiser
+ID collection / advertiser tracking to `trackingAllowed`, except for any of these
+settings the app already set through `FacebookAppEvents`, which it leaves as is. Then call
 `NativeFacebookShare.SharePhotoAsync(...)`; no caption is accepted.
 Forward Facebook callback URLs to
 `NativeFacebookShare.HandleOpenUrl(app.Handle, url.Handle, options.Handle)`.

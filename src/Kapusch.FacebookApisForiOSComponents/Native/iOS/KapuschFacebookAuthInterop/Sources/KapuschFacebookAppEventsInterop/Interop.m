@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "KapuschFacebookAppEventsInterop.h"
+#include "KapuschFacebookSettingsRegistry.h"
 
 static os_log_t KFBAppEventsLog(void)
 {
@@ -35,11 +36,17 @@ static os_log_t KFBAppEventsLog(void)
 // - Other wrappers in this package look the registry up through the
 //   Objective-C runtime (no link-time dependency) so they do not override a
 //   setting the app configured explicitly.
+//
+// The class name, selectors and setting names are a contract with
+// KapuschFacebookSettingsRegistry.h; keep them in sync.
 @interface KFBAppEventsSettingsRegistry : NSObject
 + (void)recordValue:(BOOL)value forSetting:(NSString *)setting;
 + (nullable NSNumber *)explicitValueForSetting:(NSString *)setting;
 + (NSDictionary<NSString *, NSNumber *> *)explicitValues;
++ (void)applyExplicitValues;
 @end
+
+static void KFBReapplyExplicitSettings(void);
 
 @implementation KFBAppEventsSettingsRegistry
 
@@ -74,11 +81,17 @@ static os_log_t KFBAppEventsLog(void)
 	}
 }
 
++ (void)applyExplicitValues
+{
+	KFBReapplyExplicitSettings();
+}
+
 @end
 
-static NSString *const KFBSettingAutoLogAppEvents = @"autoLogAppEvents";
-static NSString *const KFBSettingAdvertiserIDCollection = @"advertiserIDCollection";
-static NSString *const KFBSettingAdvertiserTracking = @"advertiserTracking";
+// Settings shared with the Login and Share wrappers come from KapuschFacebookSettingsRegistry.h.
+#define KFBSettingAutoLogAppEvents KFBRegistrySettingAutoLogAppEvents
+#define KFBSettingAdvertiserIDCollection KFBRegistrySettingAdvertiserIDCollection
+#define KFBSettingAdvertiserTracking KFBRegistrySettingAdvertiserTracking
 static NSString *const KFBSettingSKAdNetworkReport = @"skAdNetworkReport";
 static NSString *const KFBSettingMetadataCollection = @"metadataCollection";
 static NSString *const KFBSettingAutoLogProductImprovement = @"autoLogProductImprovement";
