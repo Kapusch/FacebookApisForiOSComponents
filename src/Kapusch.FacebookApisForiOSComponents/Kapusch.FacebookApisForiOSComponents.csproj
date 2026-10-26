@@ -22,6 +22,10 @@
       Condition="'$(InteropIosWrapperDir)' == '' and Exists('Native/iOS/build/kfb.xcframework')"
       >Native/iOS/build/kfb.xcframework</InteropIosWrapperDir
     >
+	<InteropIosLoginStubWrapperDir
+	  Condition="'$(InteropIosLoginStubWrapperDir)' == '' and Exists('Native/iOS/build/kfbloginstub.xcframework')"
+	  >Native/iOS/build/kfbloginstub.xcframework</InteropIosLoginStubWrapperDir
+	>
 	<InteropIosShareWrapperDir
 	  Condition="'$(InteropIosShareWrapperDir)' == '' and Exists('Native/iOS/build/kfbshare.xcframework')"
 	  >Native/iOS/build/kfbshare.xcframework</InteropIosShareWrapperDir
@@ -58,6 +62,9 @@
     <!-- Keep the outer directory name so consumers can reference kfb.xcframework/ as a NativeReference. -->
     <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="kfb.xcframework/" />
   </ItemGroup>
+	<ItemGroup Condition="'$(InteropIosLoginStubWrapperDir)' != '' and Exists('$(InteropIosLoginStubWrapperDir)')">
+		<None Include="$(InteropIosLoginStubWrapperDir)/**" Pack="true" PackagePath="kfbloginstub.xcframework/" />
+	</ItemGroup>
 	<ItemGroup Condition="'$(InteropIosShareWrapperDir)' != '' and Exists('$(InteropIosShareWrapperDir)')">
 		<None Include="$(InteropIosShareWrapperDir)/**" Pack="true" PackagePath="kfbshare.xcframework/" />
 	</ItemGroup>
@@ -79,6 +86,10 @@
       Condition="'$(InteropIosWrapperDir)' == '' or !Exists('$(InteropIosWrapperDir)')"
       Text="Missing iOS native wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosWrapperDir."
     />
+	<Error
+	  Condition="'$(InteropIosLoginStubWrapperDir)' == '' or !Exists('$(InteropIosLoginStubWrapperDir)')"
+	  Text="Missing iOS login placeholder. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosLoginStubWrapperDir."
+	/>
 	<Error
 	  Condition="'$(InteropIosShareWrapperDir)' == '' or !Exists('$(InteropIosShareWrapperDir)')"
 	  Text="Missing iOS share wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareWrapperDir."

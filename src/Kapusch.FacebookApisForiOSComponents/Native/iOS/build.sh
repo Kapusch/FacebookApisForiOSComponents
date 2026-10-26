@@ -4,6 +4,7 @@ set -euo pipefail
 # Builds the Objective-C interop static libraries against the pinned Facebook
 # iOS SDK xcframeworks and wraps each one in an xcframework:
 #   build/kfb.xcframework       (Login)
+#   build/kfbloginstub.xcframework (Login entry points when Login is not selected)
 #   build/kfbshare.xcframework  (Share)
 #   build/kfbsharestub.xcframework (Share entry points when Share is not selected)
 #   build/kfbappevents.xcframework (App Events, linked with every selection)
@@ -145,6 +146,7 @@ build_xcframework() {
 }
 
 build_xcframework KapuschFacebookAuthInterop "$SOURCES_DIR/KapuschFacebookAuthInterop" "$BUILD_DIR/kfb.xcframework"
+build_xcframework KapuschFacebookLoginStub "$SOURCES_DIR/KapuschFacebookLoginStub" "$BUILD_DIR/kfbloginstub.xcframework"
 build_xcframework KapuschFacebookShareInterop "$SOURCES_DIR/KapuschFacebookShareInterop" "$BUILD_DIR/kfbshare.xcframework"
 build_xcframework KapuschFacebookShareStub "$SOURCES_DIR/KapuschFacebookShareStub" "$BUILD_DIR/kfbsharestub.xcframework"
 build_xcframework KapuschFacebookAppEventsInterop "$SOURCES_DIR/KapuschFacebookAppEventsInterop" "$BUILD_DIR/kfbappevents.xcframework"
