@@ -38,6 +38,7 @@
   >
     <PropertyGroup>
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
+	  <_KapuschFacebookLoginStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbloginstub.xcframework'))</_KapuschFacebookLoginStubIosWrapper>
 	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
 	  <_KapuschFacebookAppEventsIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbappevents.xcframework'))</_KapuschFacebookAppEventsIosWrapper>
@@ -49,6 +50,10 @@
 	  Condition="'$(_KapuschFacebookLoginEnabled)' == 'True' and !Exists('$(_KapuschFacebookInteropIosWrapper)')"
       Text="Kapusch.Facebook.iOS source-mode: missing wrapper xcframework at '$(_KapuschFacebookInteropIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
     />
+	<Error
+	  Condition="'$(_KapuschFacebookLoginEnabled)' != 'True' and !Exists('$(_KapuschFacebookLoginStubIosWrapper)')"
+	  Text="Kapusch.Facebook.iOS source-mode: missing login placeholder xcframework at '$(_KapuschFacebookLoginStubIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
+	/>
 	<Error
 	  Condition="'$(_KapuschFacebookShareEnabled)' == 'True' and !Exists('$(_KapuschFacebookShareInteropIosWrapper)')"
 	  Text="Kapusch.Facebook.iOS source-mode: missing share wrapper xcframework at '$(_KapuschFacebookShareInteropIosWrapper)'. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh."
@@ -70,6 +75,11 @@
         <Kind>Static</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
+	  <!-- NativeFacebookLogin uses static __Internal imports, so its symbols must link even when Login is not selected. -->
+	  <NativeReference Include="$(_KapuschFacebookLoginStubIosWrapper)" Condition="'$(_KapuschFacebookLoginEnabled)' != 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
 	  <NativeReference Include="$(_KapuschFacebookShareInteropIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
 		<Kind>Static</Kind>
 		<ForceLoad>true</ForceLoad>
@@ -118,6 +128,7 @@
   >
     <PropertyGroup>
       <_KapuschFacebookInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfb.xcframework'))</_KapuschFacebookInteropIosWrapper>
+	  <_KapuschFacebookLoginStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbloginstub.xcframework'))</_KapuschFacebookLoginStubIosWrapper>
 	  <_KapuschFacebookShareInteropIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbshare.xcframework'))</_KapuschFacebookShareInteropIosWrapper>
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
 	  <_KapuschFacebookAppEventsIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbappevents.xcframework'))</_KapuschFacebookAppEventsIosWrapper>
@@ -130,6 +141,11 @@
         <Kind>Static</Kind>
         <ForceLoad>true</ForceLoad>
       </NativeReference>
+	  <!-- NativeFacebookLogin uses static __Internal imports, so its symbols must link even when Login is not selected. -->
+	  <NativeReference Include="$(_KapuschFacebookLoginStubIosWrapper)" Condition="'$(_KapuschFacebookLoginEnabled)' != 'True'">
+		<Kind>Static</Kind>
+		<ForceLoad>true</ForceLoad>
+	  </NativeReference>
 	  <NativeReference Include="$(_KapuschFacebookShareInteropIosWrapper)" Condition="'$(_KapuschFacebookShareEnabled)' == 'True'">
 		<Kind>Static</Kind>
 		<ForceLoad>true</ForceLoad>

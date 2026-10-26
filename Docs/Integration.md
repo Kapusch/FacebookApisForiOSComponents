@@ -66,11 +66,12 @@ case-sensitive; unknown values produce a build warning):
 every feature links, so its small facade (`kfbappevents.xcframework`) is always
 linked. Selecting `AppEvents` matters when you want neither Login nor Share.
 
-When `Share` is not selected, the package links a small Foundation-only
-placeholder (`kfbsharestub.xcframework`) for the `NativeFacebookShare` entry
-points, because the .NET iOS build always asks the native linker for them.
-Calling `NativeFacebookShare.SharePhotoAsync(...)` then completes with
-`Failed` / `share_feature_not_selected`; no ShareKit code is shipped.
+When `Share` (or `Login`) is not selected, the package links a small
+Foundation-only placeholder (`kfbsharestub.xcframework` / `kfbloginstub.xcframework`)
+for its entry points, because the .NET iOS build always asks the native linker for
+them. Calling `NativeFacebookShare.SharePhotoAsync(...)` then completes with
+`Failed` / `share_feature_not_selected` and `NativeFacebookLogin.SignInAsync(...)`
+with `Failed` / `login_feature_not_selected`; no ShareKit or LoginKit code is shipped.
 
 At SDK 18.0.2, ShareKit's CoreKit dependency requires FBAEMKit. Treat this as a
 privacy-review blocker if the consumer's artifact policy excludes FBAEMKit.

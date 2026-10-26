@@ -17,6 +17,21 @@ contains_fixed_text() {
 	fi
 }
 
+login_source="src/Kapusch.FacebookApisForiOSComponents/Facebook/NativeFacebookLogin.iOS.cs"
+if contains_fixed_text "NativeLibrary.GetExport" "$login_source"; then
+	echo "Facebook Login must use static __Internal imports so iOS retains its native symbols." >&2
+	exit 1
+fi
+
+for symbol in \
+	kfb_facebook_initialize \
+	kfb_facebook_handle_open_url \
+	kfb_facebook_signin_start \
+	kfb_facebook_signout; do
+	contains_fixed_text "EntryPoint = \"$symbol\"" "$login_source" \
+		|| { echo "Missing static Facebook Login import: $symbol" >&2; exit 1; }
+done
+
 if contains_fixed_text "NativeLibrary.GetExport" "$share_source"; then
 	echo "Facebook Share must use static __Internal imports so iOS retains its native symbols." >&2
 	exit 1

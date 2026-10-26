@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Kapusch.Facebook.iOS;
 
-public static unsafe class NativeFacebookLogin
+public static unsafe partial class NativeFacebookLogin
 {
 	public static void Initialize(IntPtr uiApplicationHandle, IntPtr launchOptionsHandle)
 	{
@@ -12,10 +12,7 @@ public static unsafe class NativeFacebookLogin
 
 		try
 		{
-			ResolveInitialize()(
-				uiApplicationHandle,
-				launchOptionsHandle
-			);
+			InitializeNative(uiApplicationHandle, launchOptionsHandle);
 		}
 		catch
 		{
@@ -34,11 +31,7 @@ public static unsafe class NativeFacebookLogin
 
 		try
 		{
-			return ResolveHandleOpenUrl()(
-				uiApplicationHandle,
-				nsUrlHandle,
-				optionsHandle
-			) != 0;
+			return HandleOpenUrlNative(uiApplicationHandle, nsUrlHandle, optionsHandle) != 0;
 		}
 		catch
 		{
@@ -71,7 +64,7 @@ public static unsafe class NativeFacebookLogin
 			: Marshal.StringToCoTaskMemUTF8(rawNonce);
 		try
 		{
-			ResolveSignInStart()(
+			SignInStartNative(
 				presentingViewControllerHandle,
 				(int)trackingMode,
 				noncePointer,
@@ -101,7 +94,7 @@ public static unsafe class NativeFacebookLogin
 	{
 		try
 		{
-			ResolveSignOut()();
+			SignOutNative();
 		}
 		catch
 		{
@@ -144,32 +137,29 @@ public static unsafe class NativeFacebookLogin
 		}
 	}
 
-	private static IntPtr Resolve(string symbol) =>
-		NativeLibrary.GetExport(NativeLibrary.GetMainProgramHandle(), symbol);
+	// Static __Internal imports make the .NET iOS build ask the native linker for
+	// these symbols, so they survive dead stripping. The previous run-time lookup in
+	// the main program found nothing once the linker had stripped them.
 
-	private static delegate* unmanaged[Cdecl]<IntPtr, IntPtr, void> ResolveInitialize() =>
-		(delegate* unmanaged[Cdecl]<IntPtr, IntPtr, void>)Resolve("kfb_facebook_initialize");
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_initialize")]
+	private static partial void InitializeNative(IntPtr uiApplicationHandle, IntPtr launchOptionsHandle);
 
-	private static delegate* unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, byte> ResolveHandleOpenUrl() =>
-		(delegate* unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, byte>)Resolve(
-			"kfb_facebook_handle_open_url"
-		);
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_handle_open_url")]
+	private static partial byte HandleOpenUrlNative(
+		IntPtr uiApplicationHandle,
+		IntPtr nsUrlHandle,
+		IntPtr optionsHandle
+	);
 
-	private static delegate* unmanaged[Cdecl]<
-		IntPtr,
-		int,
-		IntPtr,
-		delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, void>,
-		IntPtr,
-		void> ResolveSignInStart() =>
-		(delegate* unmanaged[Cdecl]<
-			IntPtr,
-			int,
-			IntPtr,
-			delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, void>,
-			IntPtr,
-			void>)Resolve("kfb_facebook_signin_start");
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_signin_start")]
+	private static partial void SignInStartNative(
+		IntPtr presentingViewControllerHandle,
+		int trackingMode,
+		IntPtr nonce,
+		delegate* unmanaged[Cdecl]<int, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, IntPtr, void> callback,
+		IntPtr context
+	);
 
-	private static delegate* unmanaged[Cdecl]<void> ResolveSignOut() =>
-		(delegate* unmanaged[Cdecl]<void>)Resolve("kfb_facebook_signout");
+	[LibraryImport("__Internal", EntryPoint = "kfb_facebook_signout")]
+	private static partial void SignOutNative();
 }

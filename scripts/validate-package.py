@@ -10,8 +10,8 @@ Checks:
 2. Every C entry point declared by the wrapper headers is exported by both
    slices of its static library.
 3. Every kfb_appevents_* entry point is bound by FacebookAppEvents with a
-   static __Internal import, and no App Events / Share binding resolves
-   symbols at run time.
+   static __Internal import, and no Login / Share / App Events binding
+   resolves symbols at run time.
 4. The managed constants cover every App Events name the bundled SDK headers
    declare, and every constant value exists in the bundled FBSDKCoreKit binary.
 """
@@ -32,6 +32,7 @@ FACEBOOK_CS = SRC / "Facebook"
 
 WRAPPERS = {
     "kfb.xcframework": ("libKapuschFacebookAuthInterop.a", "KapuschFacebookAuthInterop.h"),
+    "kfbloginstub.xcframework": ("libKapuschFacebookLoginStub.a", "KapuschFacebookAuthInterop.h"),
     "kfbshare.xcframework": ("libKapuschFacebookShareInterop.a", "KapuschFacebookShareInterop.h"),
     "kfbsharestub.xcframework": ("libKapuschFacebookShareStub.a", "KapuschFacebookShareInterop.h"),
     "kfbappevents.xcframework": ("libKapuschFacebookAppEventsInterop.a", "KapuschFacebookAppEventsInterop.h"),
@@ -118,7 +119,7 @@ def check_app_events_bindings() -> None:
             fail(f"FacebookAppEvents does not bind {symbol}")
     if 'private const string NativeLibraryName = "__Internal";' not in source:
         fail("FacebookAppEvents must bind its entry points with static __Internal imports")
-    for name in ["FacebookAppEvents.iOS.cs", "NativeFacebookShare.iOS.cs"]:
+    for name in ["FacebookAppEvents.iOS.cs", "NativeFacebookLogin.iOS.cs", "NativeFacebookShare.iOS.cs"]:
         if "NativeLibrary.GetExport" in (FACEBOOK_CS / name).read_text():
             fail(f"{name} must use static __Internal imports so iOS keeps its native symbols")
 
