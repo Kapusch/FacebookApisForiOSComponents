@@ -11,6 +11,7 @@
 @import FBSDKLoginKit;
 
 #include "KapuschFacebookAuthInterop.h"
+#include "KapuschFacebookSettingsRegistry.h"
 
 typedef NS_ENUM(int32_t, KFBProviderStatus) {
 	KFBProviderStatusSuccess = 0,
@@ -85,6 +86,8 @@ KFB_EXPORT void kfb_facebook_initialize(void *applicationPtr, void *launchOption
 
 	[FBSDKApplicationDelegate.sharedInstance application:application
 							didFinishLaunchingWithOptions:launchOptions];
+	// No-op unless the app changed settings through FacebookAppEvents.
+	KFBApplyExplicitAppEventsSettings();
 }
 
 KFB_EXPORT bool kfb_facebook_handle_open_url(void *applicationPtr, void *urlPtr, void *optionsPtr)

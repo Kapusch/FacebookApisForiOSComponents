@@ -10,6 +10,7 @@
 @import FBSDKShareKit;
 
 #include "KapuschFacebookShareInterop.h"
+#include "KapuschFacebookSettingsRegistry.h"
 
 typedef NS_ENUM(int32_t, KFBShareStatus) {
 	KFBShareStatusSuccess = 0,
@@ -133,10 +134,27 @@ KFB_EXPORT void kfb_facebook_share_configure_and_initialize(void *applicationPtr
 		KFBShareLog(),
 		"Configuring Facebook Share SDK. trackingAllowed=%{public}d",
 		trackingAllowed ? 1 : 0);
+	// Share-only apps get the historical defaults. A value the app set
+	// explicitly through FacebookAppEvents wins and is left untouched.
 	FBSDKSettings *settings = FBSDKSettings.sharedSettings;
-	settings.isAutoLogAppEventsEnabled = NO;
-	settings.isAdvertiserIDCollectionEnabled = trackingAllowed;
-	settings.isAdvertiserTrackingEnabled = trackingAllowed;
+	if (KFBExplicitAppEventsSetting(KFBRegistrySettingAutoLogAppEvents) == nil) {
+		settings.isAutoLogAppEventsEnabled = NO;
+	} else {
+		os_log_debug(KFBShareLog(), "Keeping the automatic app events setting configured by the app.");
+	}
+	if (KFBExplicitAppEventsSetting(KFBRegistrySettingAdvertiserIDCollection) == nil) {
+		settings.isAdvertiserIDCollectionEnabled = trackingAllowed;
+	} else {
+		os_log_debug(KFBShareLog(), "Keeping the advertiser ID collection setting configured by the app.");
+	}
+	if (KFBExplicitAppEventsSetting(KFBRegistrySettingAdvertiserTracking) == nil) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+		settings.isAdvertiserTrackingEnabled = trackingAllowed;
+#pragma clang diagnostic pop
+	} else {
+		os_log_debug(KFBShareLog(), "Keeping the advertiser tracking setting configured by the app.");
+	}
 	if (KFBShareSdkInitialized) {
 		return;
 	}
@@ -144,6 +162,7 @@ KFB_EXPORT void kfb_facebook_share_configure_and_initialize(void *applicationPtr
 	UIApplication *application = (__bridge UIApplication *)applicationPtr;
 	[FBSDKApplicationDelegate.sharedInstance application:application
 							didFinishLaunchingWithOptions:nil];
+	KFBApplyExplicitAppEventsSettings();
 	KFBShareSdkInitialized = YES;
 }
 
