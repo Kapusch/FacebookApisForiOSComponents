@@ -16,7 +16,10 @@ A NuGet package that:
 Select features with `KapuschFacebookFeatures=Login`, `Share`, or `Login;Share`.
 The default remains `Login` for compatibility.
 
-Facebook iOS SDK 18.0.2 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
+The package bundles Facebook iOS SDK **19.0.0** (see `DependencyLocks/iOS/lockstate.txt`).
+It requires iOS 15.0 or later, the minimum of that SDK release.
+
+Facebook iOS SDK 19.0.0 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
 `Share` currently includes `ShareKit`, `CoreKit`, `CoreKit_Basics` and `FBAEMKit`.
 A consumer that forbids `FBAEMKit` must block Store delivery; this repository
 does not strip or conceal the dependency.

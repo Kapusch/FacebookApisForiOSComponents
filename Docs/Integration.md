@@ -4,6 +4,9 @@ This document applies whether you consume the package via NuGet or via ProjectRe
 
 ## 1) Info.plist requirements
 
+The bundled Facebook iOS SDK 19.0.0 requires iOS 15.0 or later
+(`SupportedOSPlatformVersion` >= 15.0).
+
 Your iOS app must include:
 
 - `FacebookDisplayName`
@@ -59,7 +62,7 @@ points, because the .NET iOS build always asks the native linker for them.
 Calling `NativeFacebookShare.SharePhotoAsync(...)` then completes with
 `Failed` / `share_feature_not_selected`; no ShareKit code is shipped.
 
-At SDK 18.0.2, ShareKit's CoreKit dependency requires FBAEMKit. Treat this as a
+At SDK 19.0.0, CoreKit (required by every feature) links FBAEMKit. Treat this as a
 privacy-review blocker if the consumer's artifact policy excludes FBAEMKit.
 
 ## 4) Limited Login

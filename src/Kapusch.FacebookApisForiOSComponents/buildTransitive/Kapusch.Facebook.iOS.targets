@@ -21,6 +21,8 @@
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropSourceRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
       <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
+      <!-- SDK 19 ships an arm64 + arm64e device slice; older SDKs ship arm64 only. -->
+      <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == '' and Exists('$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit.xcframework/ios-arm64_arm64e')">ios-arm64_arm64e</_KapuschFacebookInteropSlice>
       <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == ''">ios-arm64</_KapuschFacebookInteropSlice>
     </PropertyGroup>
     <Error
@@ -91,6 +93,8 @@
 	  <_KapuschFacebookShareStubIosWrapper>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'kfbsharestub.xcframework'))</_KapuschFacebookShareStubIosWrapper>
       <_KapuschFacebookInteropFbDir>$([System.IO.Path]::Combine('$(_KapuschFacebookInteropPackageRoot)', 'fb'))</_KapuschFacebookInteropFbDir>
       <_KapuschFacebookInteropSlice Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">ios-arm64_x86_64-simulator</_KapuschFacebookInteropSlice>
+      <!-- SDK 19 ships an arm64 + arm64e device slice; older SDKs ship arm64 only. -->
+      <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == '' and Exists('$(_KapuschFacebookInteropFbDir)/FBSDKCoreKit.xcframework/ios-arm64_arm64e')">ios-arm64_arm64e</_KapuschFacebookInteropSlice>
       <_KapuschFacebookInteropSlice Condition="'$(_KapuschFacebookInteropSlice)' == ''">ios-arm64</_KapuschFacebookInteropSlice>
     </PropertyGroup>
     <ItemGroup>
