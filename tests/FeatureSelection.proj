@@ -17,5 +17,9 @@
       Condition="'$(_KapuschFacebookShareEnabled)' != '$(ExpectedShareEnabled)'"
       Text="Expected Share=$(ExpectedShareEnabled), got $(_KapuschFacebookShareEnabled) for '$(KapuschFacebookFeatures)'."
     />
+    <Error
+      Condition="'$(ExpectedAppEventsEnabled)' != '' and '$(_KapuschFacebookAppEventsEnabled)' != '$(ExpectedAppEventsEnabled)'"
+      Text="Expected AppEvents=$(ExpectedAppEventsEnabled), got $(_KapuschFacebookAppEventsEnabled) for '$(KapuschFacebookFeatures)'."
+    />
   </Target>
 </Project>

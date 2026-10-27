@@ -7,7 +7,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);Native/**</DefaultItemExcludes>
     <PackageId>Kapusch.Facebook.iOS</PackageId>
     <Authors>Kapusch</Authors>
-    <Description>Facebook iOS auth interop wrapper + classic xcframework packaging.</Description>
+    <Description>Facebook iOS SDK for .NET iOS: Login, photo Share and Meta App Events interop with bundled xcframeworks.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Kapusch/FacebookApisForiOSComponents</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -16,15 +16,27 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <AssemblyName>Kapusch.Facebook.iOS</AssemblyName>
     <RootNamespace>Kapusch.Facebook.iOS</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageReadmeFile>nuget-readme.md</PackageReadmeFile>
     <InteropIosWrapperDir
       Condition="'$(InteropIosWrapperDir)' == '' and Exists('Native/iOS/build/kfb.xcframework')"
       >Native/iOS/build/kfb.xcframework</InteropIosWrapperDir
     >
+	<InteropIosLoginStubWrapperDir
+	  Condition="'$(InteropIosLoginStubWrapperDir)' == '' and Exists('Native/iOS/build/kfbloginstub.xcframework')"
+	  >Native/iOS/build/kfbloginstub.xcframework</InteropIosLoginStubWrapperDir
+	>
 	<InteropIosShareWrapperDir
 	  Condition="'$(InteropIosShareWrapperDir)' == '' and Exists('Native/iOS/build/kfbshare.xcframework')"
 	  >Native/iOS/build/kfbshare.xcframework</InteropIosShareWrapperDir
+	>
+	<InteropIosShareStubWrapperDir
+	  Condition="'$(InteropIosShareStubWrapperDir)' == '' and Exists('Native/iOS/build/kfbsharestub.xcframework')"
+	  >Native/iOS/build/kfbsharestub.xcframework</InteropIosShareStubWrapperDir
+	>
+	<InteropIosAppEventsWrapperDir
+	  Condition="'$(InteropIosAppEventsWrapperDir)' == '' and Exists('Native/iOS/build/kfbappevents.xcframework')"
+	  >Native/iOS/build/kfbappevents.xcframework</InteropIosAppEventsWrapperDir
 	>
     <FacebookIosFrameworksDir
       Condition="'$(FacebookIosFrameworksDir)' == '' and Exists('Native/iOS/build/fb')"
@@ -50,8 +62,17 @@
     <!-- Keep the outer directory name so consumers can reference kfb.xcframework/ as a NativeReference. -->
     <None Include="$(InteropIosWrapperDir)/**" Pack="true" PackagePath="kfb.xcframework/" />
   </ItemGroup>
+	<ItemGroup Condition="'$(InteropIosLoginStubWrapperDir)' != '' and Exists('$(InteropIosLoginStubWrapperDir)')">
+		<None Include="$(InteropIosLoginStubWrapperDir)/**" Pack="true" PackagePath="kfbloginstub.xcframework/" />
+	</ItemGroup>
 	<ItemGroup Condition="'$(InteropIosShareWrapperDir)' != '' and Exists('$(InteropIosShareWrapperDir)')">
 		<None Include="$(InteropIosShareWrapperDir)/**" Pack="true" PackagePath="kfbshare.xcframework/" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(InteropIosShareStubWrapperDir)' != '' and Exists('$(InteropIosShareStubWrapperDir)')">
+		<None Include="$(InteropIosShareStubWrapperDir)/**" Pack="true" PackagePath="kfbsharestub.xcframework/" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(InteropIosAppEventsWrapperDir)' != '' and Exists('$(InteropIosAppEventsWrapperDir)')">
+		<None Include="$(InteropIosAppEventsWrapperDir)/**" Pack="true" PackagePath="kfbappevents.xcframework/" />
 	</ItemGroup>
   <ItemGroup Condition="'$(FacebookIosFrameworksDir)' != '' and Exists('$(FacebookIosFrameworksDir)')">
     <None Include="$(FacebookIosFrameworksDir)/**" Pack="true" PackagePath="fb/" />
@@ -66,8 +87,20 @@
       Text="Missing iOS native wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosWrapperDir."
     />
 	<Error
+	  Condition="'$(InteropIosLoginStubWrapperDir)' == '' or !Exists('$(InteropIosLoginStubWrapperDir)')"
+	  Text="Missing iOS login placeholder. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosLoginStubWrapperDir."
+	/>
+	<Error
 	  Condition="'$(InteropIosShareWrapperDir)' == '' or !Exists('$(InteropIosShareWrapperDir)')"
 	  Text="Missing iOS share wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareWrapperDir."
+	/>
+	<Error
+	  Condition="'$(InteropIosShareStubWrapperDir)' == '' or !Exists('$(InteropIosShareStubWrapperDir)')"
+	  Text="Missing iOS share placeholder. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosShareStubWrapperDir."
+	/>
+	<Error
+	  Condition="'$(InteropIosAppEventsWrapperDir)' == '' or !Exists('$(InteropIosAppEventsWrapperDir)')"
+	  Text="Missing iOS App Events wrapper. Build it first via src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh or provide InteropIosAppEventsWrapperDir."
 	/>
     <Error
       Condition="'$(FacebookIosFrameworksDir)' == '' or !Exists('$(FacebookIosFrameworksDir)')"

@@ -14,7 +14,7 @@ NuGet versions and Git tags are immutable. Query the official NuGet index before
 ## Release sequence
 
 1. Fetch `origin`, start a short-lived branch from `origin/master`, and verify the worktree is clean.
-2. Build the Swift wrappers, collect the locked Facebook xcframeworks, pack the NuGet and validate its module selection.
+2. Build the Objective-C wrappers, collect the locked Facebook xcframeworks, pack the NuGet and validate its module selection.
 3. Open a PR to `master` and require CI to pass.
 4. Merge and fetch the resulting `origin/master` commit.
 5. Create the RC or stable tag on that exact commit and push only the new tag.

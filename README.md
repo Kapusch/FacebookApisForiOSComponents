@@ -9,17 +9,32 @@ Public OSS repository that packages selected Facebook iOS features into a consum
 ## What this repo ships
 
 A NuGet package that:
-- provides managed APIs for **Facebook Login** and **Facebook photo sharing**, and
+- provides managed APIs for **Facebook Login**, **Facebook photo sharing** and **Meta App Events**
+  (install / activation attribution, standard and custom events, consent-related settings,
+  AEM deep-link forwarding), and
 - redistributes the required **Facebook iOS SDK xcframeworks** inside the `.nupkg` (classic/native binding packaging),
 - injects the xcframeworks into consuming apps via `buildTransitive` `NativeReference` items.
 
-Select features with `KapuschFacebookFeatures=Login`, `Share`, or `Login;Share`.
-The default remains `Login` for compatibility.
+Select features with `KapuschFacebookFeatures=Login`, `Share`, `AppEvents` or a combination
+such as `Login;Share`. The default remains `Login` for compatibility. `FacebookAppEvents` is
+available with every selection because CoreKit is always linked; `AppEvents` alone ships
+CoreKit, AEMKit and CoreKit_Basics only.
 
-Facebook iOS SDK 18.0.2 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
-`Share` currently includes `ShareKit`, `CoreKit`, `CoreKit_Basics` and `FBAEMKit`.
-A consumer that forbids `FBAEMKit` must block Store delivery; this repository
-does not strip or conceal the dependency.
+The package bundles Facebook iOS SDK **18.0.2** (see `DependencyLocks/iOS/lockstate.txt`).
+That release links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore every selection
+includes `CoreKit`, `CoreKit_Basics` and `FBAEMKit`, plus `LoginKit` and/or `ShareKit`
+when selected. A consumer that forbids `FBAEMKit` must block Store delivery; this
+repository does not strip or conceal the dependency.
+
+## Upstream dependency ingestion
+
+- The repo build downloads Meta's prebuilt **dynamic** xcframework archives from the
+  `facebook/facebook-ios-sdk` GitHub release named in `DependencyLocks/iOS/lockstate.txt`.
+- Each archive is verified against the SHA-256 in that lock file (the same value as the
+  upstream `Package.swift` `remoteChecksum`) before it is extracted.
+- The wrappers are Objective-C and compile against the SDK's Objective-C headers only.
+  They do not need the Swift compiler release Meta used to build the binaries.
+- Consuming apps never download anything: the NuGet already contains every xcframework.
 
 ## Third-party licenses
 
@@ -38,7 +53,7 @@ Prereqs:
 - Xcode installed (for `xcrun`, iOS SDKs)
 - .NET SDK 10 (`global.json` pins 10.0.100)
 
-Build the native wrapper:
+Build the native wrappers (restores the pinned SDK archives first):
 - `bash src/Kapusch.FacebookApisForiOSComponents/Native/iOS/build.sh`
 
 Collect Facebook xcframeworks for packing:
@@ -51,7 +66,8 @@ Pack the NuGet:
 
 - Install the package from NuGet.org for public release tags.
 - Install the package from GitHub Packages for internal preview builds.
-- Follow `Docs/Integration.md` for Info.plist keys and AppDelegate hooks.
+- Follow `Docs/Integration.md` for Info.plist keys, AppDelegate hooks, App Events consent
+  gating and how to avoid double counting with server-side purchase events.
 
 ## CI
 

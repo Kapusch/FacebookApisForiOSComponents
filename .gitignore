@@ -14,7 +14,7 @@ artifacts/
 # macOS
 .DS_Store
 
-# SwiftPM / Xcode
+# Xcode
 .build/
 *.xcworkspace/
 DerivedData/
@@ -24,6 +24,7 @@ DerivedData/
 
 # Native build output (repo-only)
 src/**/Native/iOS/build/
+src/**/Native/iOS/.cache/
 
 # Sample local config
 samples/**/Info.plist
