@@ -131,6 +131,7 @@ jobs:
             "kfb.xcframework/Info.plist",
             "kfbshare.xcframework/Info.plist",
             "kfbsharestub.xcframework/Info.plist",
+            "kfbappevents.xcframework/Info.plist",
             "fb/FBAEMKit.xcframework/Info.plist",
             "fb/FBSDKCoreKit.xcframework/Info.plist",
             "fb/FBSDKCoreKit_Basics.xcframework/Info.plist",
