@@ -20,10 +20,11 @@ such as `Login;Share`. The default remains `Login` for compatibility. `FacebookA
 available with every selection because CoreKit is always linked; `AppEvents` alone ships
 CoreKit, AEMKit and CoreKit_Basics only.
 
-Facebook iOS SDK 18.0.2 links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore
-`Share` currently includes `ShareKit`, `CoreKit`, `CoreKit_Basics` and `FBAEMKit`.
-A consumer that forbids `FBAEMKit` must block Store delivery; this repository
-does not strip or conceal the dependency.
+The package bundles Facebook iOS SDK **18.0.2** (see `DependencyLocks/iOS/lockstate.txt`).
+That release links `FBSDKCoreKit` to `FBAEMKit` non-weakly. Therefore every selection
+includes `CoreKit`, `CoreKit_Basics` and `FBAEMKit`, plus `LoginKit` and/or `ShareKit`
+when selected. A consumer that forbids `FBAEMKit` must block Store delivery; this
+repository does not strip or conceal the dependency.
 
 ## Upstream dependency ingestion
 
