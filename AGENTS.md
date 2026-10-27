@@ -22,6 +22,7 @@
 - `bash tests/validate-feature-selection.sh` — feature selection and wrapper source invariants.
 - `python3 scripts/validate-package.py` — packed layout, native exports, App Events bindings and constants.
 - `python3 scripts/verify-public.py` — no real Facebook credentials or emails in tracked files, and no private term read from `KAPUSCH_PRIVATE_TERMS` or the untracked `.git/info/private-terms`.
+- `python3 scripts/verify-app-symbols.py <app executable>` — a built app (CI builds the sample) keeps every `kfb_*` entry point.
 - When package contents or native entry points change, update `scripts/validate-package.py` in the same commit.
 
 ## Safety

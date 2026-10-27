@@ -63,6 +63,15 @@ jobs:
       - name: Validate package
         run: python3 scripts/validate-package.py
 
+      - name: Build sample (simulator) and check its native entry points
+        run: |
+          dotnet build samples/Kapusch.Facebook.iOS.Sample/Kapusch.Facebook.iOS.Sample.csproj \
+            -c Debug \
+            -p:RuntimeIdentifier=iossimulator-arm64 \
+            -p:EnableCodeSigning=false
+          python3 scripts/verify-app-symbols.py \
+            samples/Kapusch.Facebook.iOS.Sample/bin/Debug/net10.0-ios/iossimulator-arm64/Kapusch.Facebook.iOS.Sample.app/Kapusch.Facebook.iOS.Sample
+
       - uses: actions/upload-artifact@v4
         with:
           name: nuget
