@@ -127,6 +127,8 @@ public sealed class AppDelegate : UIApplicationDelegate
 			return;
 
 		FacebookAppEvents.SetDebugLoggingEnabled(true);
+		// A previous withdrawal in this process switched flushing to explicit only.
+		FacebookAppEvents.SetFlushBehavior(FacebookAppEventsFlushBehavior.Auto);
 		FacebookAppEvents.InitializeSdk();
 		FacebookAppEvents.SetAdvertiserIdCollectionEnabled(true);
 		FacebookAppEvents.SetAutoLogAppEventsEnabled(false);
@@ -136,15 +138,22 @@ public sealed class AppDelegate : UIApplicationDelegate
 		Console.WriteLine(
 			$"App Events: SDK {FacebookAppEvents.SdkVersion}, anonymous ID {FacebookAppEvents.GetAnonymousId()}, "
 				+ $"autoLog={FacebookAppEvents.IsAutoLogAppEventsEnabled}, "
-				+ $"advertiserId={FacebookAppEvents.IsAdvertiserIdCollectionEnabled}"
+				+ $"advertiserId={FacebookAppEvents.IsAdvertiserIdCollectionEnabled}, "
+				+ $"initialized={FacebookAppEvents.IsSdkInitialized}"
 		);
 	}
 
 	private void WithdrawAppEventsConsent()
 	{
 		_appEventsConsented = false;
-		if (!HasFacebookConfiguration())
+		// Keep events queued before the withdrawal on the device (not persisted across launches).
+		FacebookAppEvents.SetFlushBehavior(FacebookAppEventsFlushBehavior.ExplicitOnly);
+		if (!FacebookAppEvents.IsSdkInitialized)
+		{
+			// Nothing is sent while the SDK is not initialized; the identity methods would throw.
+			Console.WriteLine("App Events: consent withdrawn (SDK not initialized).");
 			return;
+		}
 
 		FacebookAppEvents.SetAutoLogAppEventsEnabled(false);
 		FacebookAppEvents.SetAdvertiserIdCollectionEnabled(false);

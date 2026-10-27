@@ -35,5 +35,10 @@ Never commit those values.
 
 The template ships the App Events switches off. "App Events: grant consent" initializes the SDK,
 enables advertiser ID collection and SDK debug logging, and logs an activation; check the device log
-and Events Manager > Test Events. Without a `FacebookAppID` the App Events buttons only print a
-message.
+and Events Manager > Test Events. "App Events: withdraw consent" follows the withdrawal steps of
+`Docs/Integration.md` (explicit-only flushing, switches off, user ID and user data cleared). Without
+a `FacebookAppID` the App Events buttons only print a message.
+
+The sample also calls `NativeFacebookLogin.Initialize` at launch for its Login button, which
+initializes the SDK before any App Events consent; a consent-first app initializes it only after
+consent (`Docs/Integration.md`, section 4.2).
