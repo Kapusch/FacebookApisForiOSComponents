@@ -57,6 +57,11 @@ for setting in KFBRegistrySettingAutoLogAppEvents KFBRegistrySettingAdvertiserID
 	contains_fixed_text "KFBExplicitAppEventsSetting($setting) == nil" "$share_interop_source" \
 		|| { echo "Facebook Share must not override the App Events setting $setting configured by the app." >&2; exit 1; }
 done
+login_interop_source="src/Kapusch.FacebookApisForiOSComponents/Native/iOS/KapuschFacebookAuthInterop/Sources/KapuschFacebookAuthInterop/Interop.m"
+for initializing_source in "$login_interop_source" "$share_interop_source"; do
+	contains_fixed_text "KFBNotifyAppEventsSdkInitialized();" "$initializing_source" \
+		|| { echo "$initializing_source must report SDK initialization to FacebookAppEvents." >&2; exit 1; }
+done
 for pasteboard_read in "dataForPasteboardType:" "valueForPasteboardType:"; do
 	if contains_fixed_text "$pasteboard_read" "$share_interop_source"; then
 		echo "Facebook Share wrapper must never read the general pasteboard." >&2

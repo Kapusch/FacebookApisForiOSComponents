@@ -162,7 +162,9 @@ KFB_EXPORT void kfb_facebook_share_configure_and_initialize(void *applicationPtr
 	UIApplication *application = (__bridge UIApplication *)applicationPtr;
 	[FBSDKApplicationDelegate.sharedInstance application:application
 							didFinishLaunchingWithOptions:nil];
-	KFBApplyExplicitAppEventsSettings();
+	// Marks the SDK initialized for FacebookAppEvents and re-applies the
+	// settings the app set through it (no-op when it set none).
+	KFBNotifyAppEventsSdkInitialized();
 	KFBShareSdkInitialized = YES;
 }
 

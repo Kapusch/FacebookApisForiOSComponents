@@ -28,14 +28,19 @@ static os_log_t KFBAppEventsLog(void)
 
 #pragma mark - Explicit settings registry
 
-// Settings changed through this facade, by name, with their last value.
+// Settings changed through this facade, by name, with their last value, and
+// whether a wrapper of this package initialized the SDK in this process.
 //
 // - The values are applied again right after the SDK is initialized. The SDK
 //   keeps a value set before initialization in memory only; re-applying it once
 //   the SDK is configured lets the SDK persist it, like any later change.
 // - Other wrappers in this package look the registry up through the
 //   Objective-C runtime (no link-time dependency) so they do not override a
-//   setting the app configured explicitly.
+//   setting the app configured explicitly, and report when they initialized
+//   the SDK.
+// - Before initialization the SDK silently drops events and identity calls and
+//   reports default setting values (caching some of them for the process), so
+//   the managed layer refuses those calls until sdkDidInitialize ran.
 //
 // The class name, selectors and setting names are a contract with
 // KapuschFacebookSettingsRegistry.h; keep them in sync.
@@ -43,7 +48,8 @@ static os_log_t KFBAppEventsLog(void)
 + (void)recordValue:(BOOL)value forSetting:(NSString *)setting;
 + (nullable NSNumber *)explicitValueForSetting:(NSString *)setting;
 + (NSDictionary<NSString *, NSNumber *> *)explicitValues;
-+ (void)applyExplicitValues;
++ (BOOL)isSdkInitialized;
++ (void)sdkDidInitialize;
 @end
 
 static void KFBReapplyExplicitSettings(void);
@@ -81,8 +87,22 @@ static void KFBReapplyExplicitSettings(void);
 	}
 }
 
-+ (void)applyExplicitValues
+static BOOL KFBSdkInitialized = NO;
+
++ (BOOL)isSdkInitialized
 {
+	@synchronized(self) {
+		return KFBSdkInitialized;
+	}
+}
+
+// Called on the main thread right after FBSDKApplicationDelegate configured the
+// SDK (synchronously, inside application:didFinishLaunchingWithOptions:).
++ (void)sdkDidInitialize
+{
+	@synchronized(self) {
+		KFBSdkInitialized = YES;
+	}
 	KFBReapplyExplicitSettings();
 }
 
@@ -212,7 +232,7 @@ static BOOL KFBFinishLaunching(UIApplication *application, NSDictionary *launchO
 {
 	BOOL result = [FBSDKApplicationDelegate.sharedInstance application:application
 										 didFinishLaunchingWithOptions:launchOptions];
-	KFBReapplyExplicitSettings();
+	[KFBAppEventsSettingsRegistry sdkDidInitialize];
 	return result;
 }
 
@@ -232,8 +252,18 @@ KFB_EXPORT bool kfb_appevents_finished_launching(void *applicationPtr, void *lau
 	return KFBFinishLaunching(application, launchOptions);
 }
 
+KFB_EXPORT bool kfb_appevents_is_sdk_initialized(void)
+{
+	return KFBAppEventsSettingsRegistry.isSdkInitialized;
+}
+
+// URL forwarding is refused until the SDK is initialized: forwarding stores
+// campaign identifiers and feeds AEM, which must wait for the app's consent.
 KFB_EXPORT bool kfb_appevents_handle_open_url(void *applicationPtr, void *urlPtr, void *optionsPtr)
 {
+	if (!KFBAppEventsSettingsRegistry.isSdkInitialized) {
+		return false;
+	}
 	UIApplication *application = (__bridge UIApplication *)applicationPtr;
 	NSURL *url = (__bridge NSURL *)urlPtr;
 	return [FBSDKApplicationDelegate.sharedInstance application:application
@@ -243,6 +273,9 @@ KFB_EXPORT bool kfb_appevents_handle_open_url(void *applicationPtr, void *urlPtr
 
 KFB_EXPORT bool kfb_appevents_continue_user_activity(void *applicationPtr, void *userActivityPtr)
 {
+	if (!KFBAppEventsSettingsRegistry.isSdkInitialized) {
+		return false;
+	}
 	UIApplication *application = (__bridge UIApplication *)applicationPtr;
 	NSUserActivity *userActivity = (__bridge NSUserActivity *)userActivityPtr;
 	return [FBSDKApplicationDelegate.sharedInstance application:application

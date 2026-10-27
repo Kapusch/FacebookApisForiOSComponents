@@ -27,6 +27,16 @@ namespace Kapusch.Facebook.iOS;
 /// app calls <see cref="InitializeSdk"/>, <see cref="FinishedLaunching"/>,
 /// <c>NativeFacebookLogin.Initialize</c> or <c>NativeFacebookShare.ConfigureAndInitialize</c>.
 /// </para>
+/// <para>
+/// Until one of them ran (<see cref="IsSdkInitialized"/>), the SDK silently drops events and
+/// identity changes and reports default setting values. The event methods, the identity
+/// methods and the setting getters therefore throw <see cref="InvalidOperationException"/>
+/// before initialization, like the Android package; <see cref="HandleOpenUrl"/> and
+/// <see cref="ContinueUserActivity"/> return <see langword="false"/> without forwarding.
+/// The setters, <see cref="SetDataProcessingOptions"/>, <see cref="SetFlushBehavior"/>,
+/// <see cref="SetDebugLoggingEnabled"/>, <see cref="GetAnonymousId"/> and
+/// <see cref="SdkVersion"/> work at any time.
+/// </para>
 /// </remarks>
 public static unsafe partial class FacebookAppEvents
 {
@@ -35,9 +45,17 @@ public static unsafe partial class FacebookAppEvents
 	// SDK lifecycle.
 
 	/// <summary>
+	/// Gets whether the SDK was initialized in this process through this package
+	/// (<see cref="InitializeSdk"/>, <see cref="FinishedLaunching"/>,
+	/// <c>NativeFacebookLogin.Initialize</c> or <c>NativeFacebookShare.ConfigureAndInitialize</c>).
+	/// </summary>
+	public static bool IsSdkInitialized => IsSdkInitializedNative();
+
+	/// <summary>
 	/// Initializes the SDK (<c>application:didFinishLaunchingWithOptions:</c> with no launch
-	/// options). Idempotent. Runs on the main thread; when called from another thread it is
-	/// queued on the main thread.
+	/// options). Idempotent. Runs synchronously on the main thread; when called from another
+	/// thread it is queued on the main thread and <see cref="IsSdkInitialized"/> becomes
+	/// <see langword="true"/> once it ran.
 	/// </summary>
 	/// <remarks>
 	/// Initialization contacts Meta to load the app's SDK configuration, even when automatic
@@ -64,7 +82,8 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>
 	/// Forwards <c>UIApplicationDelegate.OpenUrl</c> (and scene URL contexts) to the SDK, for
-	/// Aggregated Event Measurement and App Links. Must be called on the main thread.
+	/// Aggregated Event Measurement and App Links. Must be called on the main thread. Before the
+	/// SDK is initialized the URL is not forwarded, so nothing is recorded before consent.
 	/// </summary>
 	/// <returns><see langword="true"/> when the SDK handled the URL.</returns>
 	public static bool HandleOpenUrl(IntPtr uiApplicationHandle, IntPtr nsUrlHandle, IntPtr optionsHandle)
@@ -78,7 +97,7 @@ public static unsafe partial class FacebookAppEvents
 	/// <summary>
 	/// Forwards <c>UIApplicationDelegate.ContinueUserActivity</c> (Universal Links) to the SDK,
 	/// for Aggregated Event Measurement. Only browsing-web activities are used by the SDK. Must
-	/// be called on the main thread.
+	/// be called on the main thread. Before the SDK is initialized the activity is not forwarded.
 	/// </summary>
 	/// <returns><see langword="true"/> when the SDK handled the activity.</returns>
 	public static bool ContinueUserActivity(IntPtr uiApplicationHandle, IntPtr nsUserActivityHandle)
@@ -103,7 +122,15 @@ public static unsafe partial class FacebookAppEvents
 	public static void SetAutoLogAppEventsEnabled(bool enabled) => SetAutoLogAppEventsEnabledNative(enabled);
 
 	/// <summary>Current automatic app event logging setting.</summary>
-	public static bool IsAutoLogAppEventsEnabled => IsAutoLogAppEventsEnabledNative();
+	public static bool IsAutoLogAppEventsEnabled
+	{
+		get
+		{
+			// Checked first: before initialization the SDK reports defaults and caches some of them.
+			EnsureSdkInitialized();
+			return IsAutoLogAppEventsEnabledNative();
+		}
+	}
 
 	/// <summary>
 	/// Enables or disables advertiser ID (IDFA) collection
@@ -113,7 +140,15 @@ public static unsafe partial class FacebookAppEvents
 	public static void SetAdvertiserIdCollectionEnabled(bool enabled) => SetAdvertiserIdCollectionEnabledNative(enabled);
 
 	/// <summary>Current advertiser ID collection setting.</summary>
-	public static bool IsAdvertiserIdCollectionEnabled => IsAdvertiserIdCollectionEnabledNative();
+	public static bool IsAdvertiserIdCollectionEnabled
+	{
+		get
+		{
+			// Checked first: before initialization the SDK reports defaults and caches some of them.
+			EnsureSdkInitialized();
+			return IsAdvertiserIdCollectionEnabledNative();
+		}
+	}
 
 	/// <summary>
 	/// Sets the advertiser tracking flag. Only used on iOS 15 and 16: on iOS 17 and later the SDK
@@ -122,7 +157,15 @@ public static unsafe partial class FacebookAppEvents
 	public static void SetAdvertiserTrackingEnabled(bool enabled) => SetAdvertiserTrackingEnabledNative(enabled);
 
 	/// <summary>Current advertiser tracking flag (derived from App Tracking Transparency on iOS 17+).</summary>
-	public static bool IsAdvertiserTrackingEnabled => IsAdvertiserTrackingEnabledNative();
+	public static bool IsAdvertiserTrackingEnabled
+	{
+		get
+		{
+			// Checked first: before initialization the SDK reports defaults and caches some of them.
+			EnsureSdkInitialized();
+			return IsAdvertiserTrackingEnabledNative();
+		}
+	}
 
 	/// <summary>
 	/// Enables or disables SKAdNetwork reporting by the SDK (<c>FacebookSKAdNetworkReportEnabled</c>).
@@ -131,7 +174,15 @@ public static unsafe partial class FacebookAppEvents
 	public static void SetSKAdNetworkReportEnabled(bool enabled) => SetSKAdNetworkReportEnabledNative(enabled);
 
 	/// <summary>Current SKAdNetwork reporting setting.</summary>
-	public static bool IsSKAdNetworkReportEnabled => IsSKAdNetworkReportEnabledNative();
+	public static bool IsSKAdNetworkReportEnabled
+	{
+		get
+		{
+			// Checked first: before initialization the SDK reports defaults and caches some of them.
+			EnsureSdkInitialized();
+			return IsSKAdNetworkReportEnabledNative();
+		}
+	}
 
 	/// <summary>
 	/// Sets data processing options, for example
@@ -174,7 +225,11 @@ public static unsafe partial class FacebookAppEvents
 	/// Call it when the app becomes active if automatic logging is disabled. The SDK only logs
 	/// an activation after 60 seconds or more of inactivity.
 	/// </summary>
-	public static void ActivateApp() => ActivateAppNative();
+	public static void ActivateApp()
+	{
+		EnsureSdkInitialized();
+		ActivateAppNative();
+	}
 
 	/// <summary>Logs an app event.</summary>
 	/// <param name="eventName">A <see cref="FacebookAppEventNames"/> constant or a custom name (2-40 characters: letters, digits, <c>_</c>, <c>-</c> or spaces).</param>
@@ -192,6 +247,7 @@ public static unsafe partial class FacebookAppEvents
 			throw new ArgumentOutOfRangeException(nameof(valueToSum), "Value to sum must be finite.");
 
 		var json = SerializeParameters(parameters);
+		EnsureSdkInitialized();
 		bool logged;
 		fixed (byte* parametersJson = json)
 		{
@@ -223,6 +279,7 @@ public static unsafe partial class FacebookAppEvents
 	{
 		var currency = NormalizeCurrency(currencyIsoCode, nameof(currencyIsoCode));
 		var json = SerializeParameters(parameters);
+		EnsureSdkInitialized();
 		bool logged;
 		fixed (byte* parametersJson = json)
 			logged = LogPurchaseNative(decimal.ToDouble(amount), currency, parametersJson);
@@ -281,7 +338,11 @@ public static unsafe partial class FacebookAppEvents
 	}
 
 	/// <summary>Sends queued events now.</summary>
-	public static void Flush() => FlushNative();
+	public static void Flush()
+	{
+		EnsureSdkInitialized();
+		FlushNative();
+	}
 
 	/// <summary>Sets when queued events are sent.</summary>
 	public static void SetFlushBehavior(FacebookAppEventsFlushBehavior behavior)
@@ -308,13 +369,21 @@ public static unsafe partial class FacebookAppEvents
 	/// Associates a custom user ID with subsequent events. Persisted by the SDK until cleared.
 	/// <see langword="null"/> or empty clears it.
 	/// </summary>
-	public static void SetUserId(string? userId) => SetUserIdNative(string.IsNullOrEmpty(userId) ? null : userId);
+	public static void SetUserId(string? userId)
+	{
+		EnsureSdkInitialized();
+		SetUserIdNative(string.IsNullOrEmpty(userId) ? null : userId);
+	}
 
 	/// <summary>Clears the custom user ID.</summary>
-	public static void ClearUserId() => SetUserIdNative(null);
+	public static void ClearUserId() => SetUserId(null);
 
 	/// <summary>Current custom user ID, if any.</summary>
-	public static string? GetUserId() => TakeNativeString(CopyUserIdNative());
+	public static string? GetUserId()
+	{
+		EnsureSdkInitialized();
+		return TakeNativeString(CopyUserIdNative());
+	}
 
 	/// <summary>
 	/// Sets advanced-matching user data. Replaces the ten standard fields at once; a
@@ -323,6 +392,7 @@ public static unsafe partial class FacebookAppEvents
 	public static void SetUserData(FacebookAppEventsUserData userData)
 	{
 		ArgumentNullException.ThrowIfNull(userData);
+		EnsureSdkInitialized();
 		SetUserDataNative(
 			userData.Email,
 			userData.FirstName,
@@ -346,11 +416,16 @@ public static unsafe partial class FacebookAppEvents
 		if (string.IsNullOrWhiteSpace(userDataType))
 			throw new ArgumentException("User data type is required.", nameof(userDataType));
 
+		EnsureSdkInitialized();
 		SetUserDataForTypeNative(userDataType, value);
 	}
 
 	/// <summary>Clears all advanced-matching user data.</summary>
-	public static void ClearUserData() => ClearUserDataNative();
+	public static void ClearUserData()
+	{
+		EnsureSdkInitialized();
+		ClearUserDataNative();
+	}
 
 	/// <summary>Clears one advanced-matching value.</summary>
 	public static void ClearUserDataValue(string userDataType)
@@ -358,10 +433,23 @@ public static unsafe partial class FacebookAppEvents
 		if (string.IsNullOrWhiteSpace(userDataType))
 			throw new ArgumentException("User data type is required.", nameof(userDataType));
 
+		EnsureSdkInitialized();
 		ClearUserDataForTypeNative(userDataType);
 	}
 
 	// Helpers.
+
+	private static void EnsureSdkInitialized()
+	{
+		if (!IsSdkInitializedNative())
+		{
+			throw new InvalidOperationException(
+				"The Facebook SDK is not initialized: call FacebookAppEvents.InitializeSdk() (or FinishedLaunching, "
+					+ "NativeFacebookLogin.Initialize, NativeFacebookShare.ConfigureAndInitialize) first. "
+					+ "Before initialization the SDK would drop this call silently."
+			);
+		}
+	}
 
 	private static void LogValueEvent(
 		string eventName,
@@ -496,6 +584,10 @@ public static unsafe partial class FacebookAppEvents
 	[LibraryImport(NativeLibraryName, EntryPoint = "kfb_appevents_continue_user_activity")]
 	[return: MarshalAs(UnmanagedType.U1)]
 	private static partial bool ContinueUserActivityNative(IntPtr uiApplicationHandle, IntPtr nsUserActivityHandle);
+
+	[LibraryImport(NativeLibraryName, EntryPoint = "kfb_appevents_is_sdk_initialized")]
+	[return: MarshalAs(UnmanagedType.U1)]
+	private static partial bool IsSdkInitializedNative();
 
 	[LibraryImport(NativeLibraryName, EntryPoint = "kfb_appevents_copy_sdk_version")]
 	private static partial IntPtr CopySdkVersionNative();

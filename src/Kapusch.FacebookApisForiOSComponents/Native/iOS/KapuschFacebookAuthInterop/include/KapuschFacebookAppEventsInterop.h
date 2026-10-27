@@ -15,6 +15,7 @@ KFB_EXPORT void kfb_appevents_initialize_sdk(void);
 KFB_EXPORT bool kfb_appevents_finished_launching(void *applicationPtr, void *launchOptionsPtr);
 KFB_EXPORT bool kfb_appevents_handle_open_url(void *applicationPtr, void *urlPtr, void *optionsPtr);
 KFB_EXPORT bool kfb_appevents_continue_user_activity(void *applicationPtr, void *userActivityPtr);
+KFB_EXPORT bool kfb_appevents_is_sdk_initialized(void);
 KFB_EXPORT const char *kfb_appevents_copy_sdk_version(void);
 
 // Settings (persisted by the SDK across launches).

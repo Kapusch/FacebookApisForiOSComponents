@@ -86,8 +86,9 @@ KFB_EXPORT void kfb_facebook_initialize(void *applicationPtr, void *launchOption
 
 	[FBSDKApplicationDelegate.sharedInstance application:application
 							didFinishLaunchingWithOptions:launchOptions];
-	// No-op unless the app changed settings through FacebookAppEvents.
-	KFBApplyExplicitAppEventsSettings();
+	// Marks the SDK initialized for FacebookAppEvents and re-applies the
+	// settings the app set through it (no-op when it set none).
+	KFBNotifyAppEventsSdkInitialized();
 }
 
 KFB_EXPORT bool kfb_facebook_handle_open_url(void *applicationPtr, void *urlPtr, void *optionsPtr)
