@@ -11,10 +11,15 @@ public enum FacebookAppEventsFlushBehavior
 }
 
 /// <summary>
-/// Advanced-matching user data passed to <see cref="FacebookAppEvents.SetUserData"/>.
-/// The SDK normalizes and hashes (SHA-256) each value on the device before sending it.
-/// A <see langword="null"/> property clears that field.
+/// Advanced-matching user data passed to <see cref="FacebookAppEvents.SetUserData"/>. Pass raw
+/// values: the SDK normalizes and hashes (SHA-256) each one on the device before persisting or
+/// sending it. <see cref="FacebookAppEvents.SetUserData"/> replaces every field at once, so a
+/// <see langword="null"/> property clears that field (same as the Android package).
 /// </summary>
+/// <remarks>
+/// Advanced matching sends personal data (hashed) to Meta. Collect it only with a legal basis and
+/// clear it with <see cref="FacebookAppEvents.ClearUserData"/> when that basis ends.
+/// </remarks>
 public sealed record FacebookAppEventsUserData
 {
 	/// <summary>Email address.</summary>
@@ -46,6 +51,9 @@ public sealed record FacebookAppEventsUserData
 
 	/// <summary>Country code (ISO 3166-1 alpha-2).</summary>
 	public string? Country { get; init; }
+
+	/// <summary>An ID representing the user in the app's own systems (<c>external_id</c>).</summary>
+	public string? ExternalId { get; init; }
 }
 
 /// <summary>Data processing options for <see cref="FacebookAppEvents.SetDataProcessingOptions"/>.</summary>

@@ -53,15 +53,34 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>
 	/// Initializes the SDK (<c>application:didFinishLaunchingWithOptions:</c> with no launch
-	/// options). Idempotent. Runs synchronously on the main thread; when called from another
-	/// thread it is queued on the main thread and <see cref="IsSdkInitialized"/> becomes
-	/// <see langword="true"/> once it ran.
+	/// options), after applying <paramref name="dataProcessingOptions"/>. Idempotent. Runs
+	/// synchronously on the main thread; when called from another thread it is queued on the
+	/// main thread and <see cref="IsSdkInitialized"/> becomes <see langword="true"/> once it ran.
 	/// </summary>
 	/// <remarks>
 	/// Initialization contacts Meta to load the app's SDK configuration, even when automatic
-	/// event logging is disabled. Call it only once the user has consented.
+	/// event logging is disabled. Call it only once the user has consented. The data processing
+	/// options are set before initialization, so they already apply to those first requests,
+	/// and again right after it, so the SDK persists them. Same signature as the Android package,
+	/// without its <c>Context</c>.
 	/// </remarks>
-	public static void InitializeSdk() => InitializeSdkNative();
+	/// <param name="dataProcessingOptions">
+	/// Options such as <see cref="FacebookDataProcessingOptions.LimitedDataUse"/>.
+	/// <see langword="null"/> leaves the current options unchanged; an empty array clears them.
+	/// </param>
+	/// <param name="dataProcessingCountry">Country for the options; <c>0</c> lets Meta geolocate the user.</param>
+	/// <param name="dataProcessingState">State for the options; <c>0</c> lets Meta geolocate the user.</param>
+	public static void InitializeSdk(
+		string[]? dataProcessingOptions = null,
+		int dataProcessingCountry = 0,
+		int dataProcessingState = 0
+	)
+	{
+		if (dataProcessingOptions is not null)
+			SetDataProcessingOptions(dataProcessingOptions, dataProcessingCountry, dataProcessingState);
+
+		InitializeSdkNative();
+	}
 
 	/// <summary>
 	/// Forwards <c>UIApplicationDelegate.FinishedLaunching</c> to the SDK, including the launch
@@ -187,7 +206,9 @@ public static unsafe partial class FacebookAppEvents
 	/// <summary>
 	/// Sets data processing options, for example
 	/// <c>[FacebookDataProcessingOptions.LimitedDataUse]</c> with country and state 0 to let Meta
-	/// geolocate the user. An empty array explicitly disables Limited Data Use.
+	/// geolocate the user. An empty array explicitly disables Limited Data Use. Works before
+	/// initialization (the options are applied again once the SDK is initialized, so it persists
+	/// them); prefer passing them to <see cref="InitializeSdk"/>.
 	/// </summary>
 	public static void SetDataProcessingOptions(string[] options, int country = 0, int state = 0)
 	{
@@ -233,7 +254,11 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>Logs an app event.</summary>
 	/// <param name="eventName">A <see cref="FacebookAppEventNames"/> constant or a custom name (2-40 characters: letters, digits, <c>_</c>, <c>-</c> or spaces).</param>
-	/// <param name="parameters">Optional parameters. Values must be strings, numbers or booleans (sent as <c>1</c>/<c>0</c>).</param>
+	/// <param name="parameters">
+	/// Optional parameters. Values must be <see cref="string"/>, <see cref="bool"/> (sent as
+	/// <c>"1"</c>/<c>"0"</c>), an integral type, a finite <see cref="float"/> or <see cref="double"/>,
+	/// or <see cref="decimal"/> (sent as exact text, like <see cref="ulong"/>), as in the Android package.
+	/// </param>
 	/// <param name="valueToSum">Optional value summed across events of this name, for example a price.</param>
 	public static void LogEvent(
 		string eventName,
@@ -386,8 +411,9 @@ public static unsafe partial class FacebookAppEvents
 	}
 
 	/// <summary>
-	/// Sets advanced-matching user data. Replaces the ten standard fields at once; a
-	/// <see langword="null"/> property clears that field. The SDK hashes the values.
+	/// Sets advanced-matching user data. Replaces every field at once, external ID included; a
+	/// <see langword="null"/> property clears that field, as in the Android package. The SDK
+	/// normalizes and SHA-256 hashes the values before persisting or sending them.
 	/// </summary>
 	public static void SetUserData(FacebookAppEventsUserData userData)
 	{
@@ -403,7 +429,8 @@ public static unsafe partial class FacebookAppEvents
 			userData.City,
 			userData.State,
 			userData.Zip,
-			userData.Country
+			userData.Country,
+			userData.ExternalId
 		);
 	}
 
@@ -527,21 +554,24 @@ public static unsafe partial class FacebookAppEvents
 				writer.WriteNumberValue(Convert.ToInt64(value, CultureInfo.InvariantCulture));
 				break;
 			case ulong unsignedLong:
-				writer.WriteNumberValue(unsignedLong);
+				// Above long.MaxValue a JSON number would lose precision; send it as text like Android.
+				writer.WriteStringValue(unsignedLong.ToString(CultureInfo.InvariantCulture));
 				break;
-			case float or double:
-				var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-				if (!double.IsFinite(number))
-					throw new ArgumentException($"Parameter '{key}' must be a finite number.", nameof(value));
+			case float single when float.IsFinite(single):
+				// The float overload keeps the shortest round-trip form (0.1, not 0.100000001...).
+				writer.WriteNumberValue(single);
+				break;
+			case double number when double.IsFinite(number):
 				writer.WriteNumberValue(number);
 				break;
 			case decimal amount:
-				writer.WriteNumberValue(amount);
+				// The SDK would turn a JSON number into a double; keep decimals exact, like Android.
+				writer.WriteStringValue(amount.ToString(CultureInfo.InvariantCulture));
 				break;
 			default:
 				throw new ArgumentException(
-					$"Parameter '{key}' must be a string, a number or a boolean.",
-					nameof(value)
+					$"Unsupported value for parameter '{key}'. Use a string, bool, integral, finite floating-point or decimal value.",
+					"parameters"
 				);
 		}
 	}
@@ -671,7 +701,8 @@ public static unsafe partial class FacebookAppEvents
 		string? city,
 		string? state,
 		string? zip,
-		string? country
+		string? country,
+		string? externalId
 	);
 
 	[LibraryImport(NativeLibraryName, EntryPoint = "kfb_appevents_set_user_data_for_type", StringMarshalling = StringMarshalling.Utf8)]

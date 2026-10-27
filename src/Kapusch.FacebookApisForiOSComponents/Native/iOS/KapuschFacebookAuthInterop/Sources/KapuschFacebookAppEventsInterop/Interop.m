@@ -28,8 +28,9 @@ static os_log_t KFBAppEventsLog(void)
 
 #pragma mark - Explicit settings registry
 
-// Settings changed through this facade, by name, with their last value, and
-// whether a wrapper of this package initialized the SDK in this process.
+// Settings and data processing options changed through this facade (last
+// values), and whether a wrapper of this package initialized the SDK in this
+// process.
 //
 // - The values are applied again right after the SDK is initialized. The SDK
 //   keeps a value set before initialization in memory only; re-applying it once
@@ -48,6 +49,8 @@ static os_log_t KFBAppEventsLog(void)
 + (void)recordValue:(BOOL)value forSetting:(NSString *)setting;
 + (nullable NSNumber *)explicitValueForSetting:(NSString *)setting;
 + (NSDictionary<NSString *, NSNumber *> *)explicitValues;
++ (void)recordDataProcessingOptions:(NSArray<NSString *> *)options country:(int32_t)country state:(int32_t)state;
++ (nullable NSDictionary<NSString *, id> *)explicitDataProcessingOptions;
 + (BOOL)isSdkInitialized;
 + (void)sdkDidInitialize;
 @end
@@ -84,6 +87,26 @@ static void KFBReapplyExplicitSettings(void);
 {
 	@synchronized(self) {
 		return [[self storage] copy];
+	}
+}
+
+static NSDictionary<NSString *, id> *KFBExplicitDataProcessingOptions = nil;
+
++ (void)recordDataProcessingOptions:(NSArray<NSString *> *)options country:(int32_t)country state:(int32_t)state
+{
+	@synchronized(self) {
+		KFBExplicitDataProcessingOptions = @{
+			@"options" : [options copy],
+			@"country" : @(country),
+			@"state" : @(state),
+		};
+	}
+}
+
++ (nullable NSDictionary<NSString *, id> *)explicitDataProcessingOptions
+{
+	@synchronized(self) {
+		return KFBExplicitDataProcessingOptions;
 	}
 }
 
@@ -139,12 +162,24 @@ static void KFBSetExplicitSetting(NSString *setting, bool value)
 	KFBApplySetting(setting, value);
 }
 
+static void KFBApplyDataProcessingOptions(NSArray<NSString *> *options, int32_t country, int32_t state)
+{
+	[FBSDKSettings.sharedSettings setDataProcessingOptions:options country:country state:state];
+}
+
 static void KFBReapplyExplicitSettings(void)
 {
 	[[KFBAppEventsSettingsRegistry explicitValues]
 		enumerateKeysAndObjectsUsingBlock:^(NSString *setting, NSNumber *value, BOOL *stop) {
 			KFBApplySetting(setting, value.boolValue);
 		}];
+	NSDictionary<NSString *, id> *dataProcessingOptions = KFBAppEventsSettingsRegistry.explicitDataProcessingOptions;
+	if (dataProcessingOptions != nil) {
+		KFBApplyDataProcessingOptions(
+			dataProcessingOptions[@"options"],
+			[dataProcessingOptions[@"country"] intValue],
+			[dataProcessingOptions[@"state"] intValue]);
+	}
 }
 
 #pragma mark - Helpers
@@ -345,9 +380,11 @@ KFB_EXPORT void kfb_appevents_set_data_processing_options(const char *optionsJso
 			return;
 		}
 	}
-	[FBSDKSettings.sharedSettings setDataProcessingOptions:(NSArray<NSString *> *)value
-												   country:country
-													 state:state];
+	// Before initialization the SDK keeps the options in memory only (they still
+	// apply to the requests initialization sends); they are applied again once
+	// the SDK is initialized so it persists them.
+	[KFBAppEventsSettingsRegistry recordDataProcessingOptions:(NSArray<NSString *> *)value country:country state:state];
+	KFBApplyDataProcessingOptions((NSArray<NSString *> *)value, country, state);
 }
 
 static NSSet<FBSDKLoggingBehavior> *KFBDebugLoggingBehaviors(void)
@@ -460,8 +497,12 @@ KFB_EXPORT void kfb_appevents_set_user_data(
 	const char *city,
 	const char *state,
 	const char *zip,
-	const char *country)
+	const char *country,
+	const char *externalId)
 {
+	// The ten-field setter keeps the stored external ID; set or clear it after
+	// it so every field is replaced, like the Android package. Both calls are
+	// queued in order on the SDK's serial user-data queue.
 	[FBSDKAppEvents.shared setUserEmail:KFBStringOrNil(email)
 							  firstName:KFBStringOrNil(firstName)
 							   lastName:KFBStringOrNil(lastName)
@@ -472,6 +513,12 @@ KFB_EXPORT void kfb_appevents_set_user_data(
 								  state:KFBStringOrNil(state)
 									zip:KFBStringOrNil(zip)
 								country:KFBStringOrNil(country)];
+	NSString *externalIdValue = KFBStringOrNil(externalId);
+	if (externalIdValue != nil) {
+		[FBSDKAppEvents.shared setUserData:externalIdValue forType:FBSDKAppEventExternalId];
+	} else {
+		[FBSDKAppEvents.shared clearUserDataForType:FBSDKAppEventExternalId];
+	}
 }
 
 KFB_EXPORT void kfb_appevents_set_user_data_for_type(const char *type, const char *value)

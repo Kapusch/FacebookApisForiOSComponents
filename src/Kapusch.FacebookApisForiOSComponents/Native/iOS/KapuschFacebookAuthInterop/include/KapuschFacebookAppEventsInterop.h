@@ -52,7 +52,8 @@ KFB_EXPORT void kfb_appevents_set_user_data(
 	const char *city,
 	const char *state,
 	const char *zip,
-	const char *country);
+	const char *country,
+	const char *externalId);
 KFB_EXPORT void kfb_appevents_set_user_data_for_type(const char *type, const char *value);
 KFB_EXPORT void kfb_appevents_clear_user_data(void);
 KFB_EXPORT void kfb_appevents_clear_user_data_for_type(const char *type);
