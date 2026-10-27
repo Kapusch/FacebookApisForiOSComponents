@@ -6,7 +6,10 @@ Usage: python3 scripts/validate-package.py [path/to/package.nupkg]
 
 Checks:
 1. Package layout: every wrapper and Facebook SDK xcframework is present,
-   nothing is flattened at the root and no unwanted SDK kit is shipped.
+   nothing is flattened at the root and no unwanted SDK kit is shipped. Each
+   SDK xcframework has the device and simulator slices that
+   buildTransitive/Kapusch.Facebook.iOS.targets references, each with the
+   privacy manifest the targets bundle.
 2. Every C entry point declared by the wrapper headers is exported by both
    slices of its static library.
 3. Every kfb_appevents_* entry point is bound by FacebookAppEvents with a
@@ -45,6 +48,9 @@ FACEBOOK_FRAMEWORKS = [
     "FBSDKLoginKit",
     "FBSDKShareKit",
 ]
+
+# Slice directories hard-coded by buildTransitive/Kapusch.Facebook.iOS.targets.
+TARGET_SLICES = ["ios-arm64", "ios-arm64_x86_64-simulator"]
 
 FORBIDDEN_PREFIXES = [
     "fb/FBSDKGamingServicesKit.xcframework/",
@@ -91,6 +97,17 @@ def check_layout(names: set[str]) -> None:
 
     if "Info.plist" in names:
         fail("a wrapper appears flattened (found 'Info.plist' at the package root)")
+
+    for framework in FACEBOOK_FRAMEWORKS:
+        for slice_name in TARGET_SLICES:
+            manifest = f"fb/{framework}.xcframework/{slice_name}/{framework}.framework/PrivacyInfo.xcprivacy"
+            if manifest not in names:
+                fail(f"missing {manifest} (referenced by Kapusch.Facebook.iOS.targets)")
+
+    targets = (SRC / "buildTransitive" / "Kapusch.Facebook.iOS.targets").read_text()
+    for slice_name in TARGET_SLICES:
+        if slice_name not in targets:
+            fail(f"Kapusch.Facebook.iOS.targets no longer references the {slice_name} slice; update TARGET_SLICES")
 
     for prefix in FORBIDDEN_PREFIXES:
         if any(name.startswith(prefix) for name in names):
