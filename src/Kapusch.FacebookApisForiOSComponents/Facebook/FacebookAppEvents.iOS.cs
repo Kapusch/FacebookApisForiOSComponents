@@ -134,13 +134,19 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>
 	/// Enables or disables automatic app event logging (<c>FacebookAutoLogAppEventsEnabled</c>):
-	/// app activation, install attribution ping and, when enabled in the Meta dashboard,
-	/// in-app purchases. When disabled, call <see cref="ActivateApp"/> to keep install and
-	/// activation events.
+	/// app activation, install attribution ping and, when enabled for the app at Meta, in-app
+	/// purchases. When disabled, call <see cref="ActivateApp"/> to keep install and activation
+	/// events.
 	/// </summary>
+	/// <remarks>
+	/// With the bundled SDK 18.0.2, an automatic-logging value set for the app at Meta (App
+	/// Dashboard / Events Manager) overrides this local value once the SDK downloaded the app's
+	/// configuration. Turn it off at Meta too when the app must control it, and check
+	/// <see cref="IsAutoLogAppEventsEnabled"/>.
+	/// </remarks>
 	public static void SetAutoLogAppEventsEnabled(bool enabled) => SetAutoLogAppEventsEnabledNative(enabled);
 
-	/// <summary>Current automatic app event logging setting.</summary>
+	/// <summary>Effective automatic app event logging setting, server override included.</summary>
 	public static bool IsAutoLogAppEventsEnabled
 	{
 		get
@@ -170,12 +176,13 @@ public static unsafe partial class FacebookAppEvents
 	}
 
 	/// <summary>
-	/// Sets the advertiser tracking flag. Only used on iOS 15 and 16: on iOS 17 and later the SDK
-	/// ignores it and reads the App Tracking Transparency status instead.
+	/// Sets the advertiser tracking flag. The SDK ignores it on iOS 17 and later, where it reads
+	/// the App Tracking Transparency status instead, and on earlier versions once Meta's domain
+	/// configuration enables that ATT handling.
 	/// </summary>
 	public static void SetAdvertiserTrackingEnabled(bool enabled) => SetAdvertiserTrackingEnabledNative(enabled);
 
-	/// <summary>Current advertiser tracking flag (derived from App Tracking Transparency on iOS 17+).</summary>
+	/// <summary>Current advertiser tracking flag (derived from App Tracking Transparency when the SDK ignores the flag).</summary>
 	public static bool IsAdvertiserTrackingEnabled
 	{
 		get
@@ -243,8 +250,10 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>
 	/// Logs <c>fb_mobile_activate_app</c> and, once per install, the install attribution ping.
-	/// Call it when the app becomes active if automatic logging is disabled. The SDK only logs
-	/// an activation after 60 seconds or more of inactivity.
+	/// Call it each time the app becomes active when automatic logging is disabled. The SDK only
+	/// logs a new activation (with the previous session's deactivation) when the app was inactive
+	/// for longer than Meta's session timeout, 60 seconds by default. Runs on the main thread;
+	/// when called from another thread it is queued on the main thread.
 	/// </summary>
 	public static void ActivateApp()
 	{
@@ -289,8 +298,9 @@ public static unsafe partial class FacebookAppEvents
 	}
 
 	/// <summary>
-	/// Logs <c>fb_mobile_purchase</c>. The SDK rounds the amount to three decimals and flushes
-	/// immediately unless the flush behaviour is <see cref="FacebookAppEventsFlushBehavior.ExplicitOnly"/>.
+	/// Logs <c>fb_mobile_purchase</c> with <c>fb_currency</c> and the amount as value to sum
+	/// (passed to the SDK as a <see cref="double"/>). The SDK flushes purchases immediately unless
+	/// the flush behaviour is <see cref="FacebookAppEventsFlushBehavior.ExplicitOnly"/>.
 	/// Do not use it for purchases that a server already reports to Meta.
 	/// </summary>
 	/// <param name="amount">Purchase amount in <paramref name="currencyIsoCode"/>.</param>
@@ -369,7 +379,10 @@ public static unsafe partial class FacebookAppEvents
 		FlushNative();
 	}
 
-	/// <summary>Sets when queued events are sent.</summary>
+	/// <summary>
+	/// Sets when queued events are sent. Not persisted: the SDK starts every launch with
+	/// <see cref="FacebookAppEventsFlushBehavior.Auto"/>. Works before initialization.
+	/// </summary>
 	public static void SetFlushBehavior(FacebookAppEventsFlushBehavior behavior)
 	{
 		if (!Enum.IsDefined(behavior))
@@ -386,7 +399,8 @@ public static unsafe partial class FacebookAppEvents
 
 	/// <summary>
 	/// Anonymous, SDK-generated install identifier (<c>AppEvents.shared.anonymousID</c>), for
-	/// example for server-side attribution partners. Generated and persisted on first access.
+	/// example for server-side attribution partners. Generated and persisted on the device on first
+	/// access, also before initialization; reading it sends nothing.
 	/// </summary>
 	public static string? GetAnonymousId() => TakeNativeString(CopyAnonymousIdNative());
 
