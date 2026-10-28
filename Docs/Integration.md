@@ -291,9 +291,13 @@ Behaviour differences:
 
 - Before initialization, the Android setters throw; the iOS setters are recorded and
   applied again once the SDK is initialized.
-- After withdrawal, the Android SDK keeps logging activations on activity resumes until
-  the process ends; the iOS SDK only logs them when `ActivateApp` runs or automatic
-  logging is on.
+- App opens with automatic logging off: on iOS, `ActivateApp()` logs
+  `fb_mobile_activate_app` as an explicit event. On Android (facebook-core 19.0.0),
+  activations are automatic events, so `ActivateApp()` then sends only the install ping;
+  measuring opens there needs `SetAutoLogAppEventsEnabled(true)`.
+- After withdrawal, turning automatic logging off on Android stops activation events at
+  once, while activity tracking keeps running until the process ends; the iOS SDK only
+  logs activations when `ActivateApp` runs or automatic logging is on.
 - On iOS, the automatic-logging value set at Meta overrides the local one (SDK 18.0.2,
   section 4.1).
 
