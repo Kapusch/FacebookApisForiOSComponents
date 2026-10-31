@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using Foundation;
 using Kapusch.Facebook.iOS;
 using UIKit;
@@ -14,8 +15,8 @@ public sealed class AppDelegate : UIApplicationDelegate
 
 	public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
 	{
-		NativeFacebookLogin.Initialize(application.Handle, launchOptions?.Handle ?? IntPtr.Zero);
-
+		// The SDK is not initialized at launch: it contacts Meta, so it waits for a login or for
+		// App Events consent (Docs/Integration.md, section 4.2).
 		Window = new UIWindow(UIScreen.MainScreen.Bounds);
 
 		var viewController = new UIViewController();
@@ -27,21 +28,29 @@ public sealed class AppDelegate : UIApplicationDelegate
 		signInButton.TouchUpInside += async (_, _) =>
 		{
 			var presenter = Window?.RootViewController;
-			if (presenter is null)
+			if (presenter is null || !HasFacebookConfiguration())
 				return;
 
 			try
 			{
+				EnsureSdkInitializedForLogin();
+
+				// Firebase-style nonce: the SDK gets SHA-256(raw nonce) and puts it in the token's
+				// nonce claim; the raw nonce stays in the app and goes to the backend with the token.
 				var rawNonce = GenerateRawNonce();
+				var hashedNonce = Sha256Hex(rawNonce);
 				var result = await NativeFacebookLogin.SignInAsync(
 					presenter.Handle,
 					FacebookTrackingMode.Limited,
-					rawNonce: rawNonce,
+					hashedNonce,
 					CancellationToken.None
 				);
 
 				Console.WriteLine(
-					$"Facebook sign-in: Status={result.Status} UserId={result.UserId ?? "(null)"} Error={result.ErrorCode ?? "(null)"} {result.ErrorMessage ?? ""}"
+					$"Facebook sign-in: Status={result.Status} "
+						+ $"AuthenticationToken={(result.AuthenticationToken is null ? "none" : "present")} "
+						+ $"NonceIsHashed={result.Nonce == hashedNonce} "
+						+ $"Error={result.ErrorCode ?? "(null)"} {result.ErrorMessage ?? ""}"
 				);
 			}
 			catch (Exception ex)
@@ -121,6 +130,25 @@ public sealed class AppDelegate : UIApplicationDelegate
 		AddButton("App Events: withdraw consent", WithdrawAppEventsConsent);
 	}
 
+	private void EnsureSdkInitializedForLogin()
+	{
+		if (FacebookAppEvents.IsSdkInitialized)
+			return;
+
+		if (!_appEventsConsented)
+		{
+			// Login before App Events consent: initialize with every switch off, so values a
+			// previous session persisted do not apply.
+			FacebookAppEvents.SetFlushBehavior(FacebookAppEventsFlushBehavior.ExplicitOnly);
+			FacebookAppEvents.SetAutoLogAppEventsEnabled(false);
+			FacebookAppEvents.SetAdvertiserIdCollectionEnabled(false);
+			FacebookAppEvents.SetAdvertiserTrackingEnabled(false);
+			FacebookAppEvents.SetSKAdNetworkReportEnabled(false);
+		}
+
+		FacebookAppEvents.InitializeSdk();
+	}
+
 	private void GrantAppEventsConsent()
 	{
 		if (!HasFacebookConfiguration())
@@ -177,7 +205,7 @@ public sealed class AppDelegate : UIApplicationDelegate
 		if (NSBundle.MainBundle.ObjectForInfoDictionary("FacebookAppID") is NSString)
 			return true;
 
-		Console.WriteLine("App Events: add FacebookAppID and FacebookClientToken to the local Info.plist first.");
+		Console.WriteLine("Facebook: add FacebookAppID and FacebookClientToken to the local Info.plist first.");
 		return false;
 	}
 
@@ -186,6 +214,9 @@ public sealed class AppDelegate : UIApplicationDelegate
 		var bytes = RandomNumberGenerator.GetBytes(size);
 		return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 	}
+
+	private static string Sha256Hex(string value) =>
+		Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
 	// Login forwards URLs to the SDK's ApplicationDelegate, which also serves App Events (AEM).
 	public override bool OpenUrl(UIApplication application, NSUrl url, NSDictionary options) =>

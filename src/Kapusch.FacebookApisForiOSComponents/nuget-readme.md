@@ -12,6 +12,11 @@ Photo sharing uses ShareKit's native-app dialog, guarantees one managed
 completion per request, and avoids reading the general pasteboard when cleaning
 Meta's app-bridge marker on return.
 
+Facebook Login reports only the tokens of the current login, never succeeds without a
+token, runs LoginKit on the main thread from any calling thread, and releases a cancelled
+login so a retry can start. For Firebase Limited Login, pass SHA-256 of your raw nonce to
+`SignInAsync` and give Firebase the raw nonce: the returned `Nonce` is the token's claim.
+
 App Events never enables anything on its own: ship the Info.plist switches off,
 initialize after consent and see `Docs/Integration.md` for the consent recipe and
 for avoiding double counting with server-side purchase events.

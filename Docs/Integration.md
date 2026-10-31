@@ -25,8 +25,17 @@ Additionally, for app-to-app flows (Facebook app), include these query schemes:
 
 Call the interop hooks in your `AppDelegate`:
 
-- On launch: `NativeFacebookLogin.Initialize(app, options)`
+- Initialize the SDK before the first login or sign-out, once the App Events switches are
+  set (section 4.2): `FacebookAppEvents.InitializeSdk()` when the login starts, or
+  `FacebookAppEvents.FinishedLaunching(app.Handle, launchOptions)` from `FinishedLaunching`
+  when the app may initialize at launch.
 - On URL open: `NativeFacebookLogin.HandleOpenUrl(app, url, options)`
+
+`NativeFacebookLogin.Initialize(app, options)` remains available: it runs the same native
+initialization as `FacebookAppEvents.FinishedLaunching` (on the main thread), so the switches
+set through `FacebookAppEvents` before it apply. It changes no setting on its own: any switch
+the app did not set keeps the SDK default (automatic logging and advertiser ID collection on).
+Do not call it unconditionally at launch in an app that gates App Events on consent.
 
 These hooks apply to `KapuschFacebookFeatures=Login`. For Share-only builds,
 disable Meta automatic initialization and call
@@ -146,8 +155,12 @@ A consent-first integration therefore:
    ```
 
    and turns automatic logging off at Meta too (server override, section 4.1).
-2. Does not initialize the SDK before the user consents. Login and Share initialize it
-   as well, so with those features the settings above are what keeps app events off.
+2. Does not initialize the SDK before the user consents. A login or a share before consent
+   needs the SDK initialized too; then the settings above are what keeps app events off. Set
+   them through `FacebookAppEvents` (`SetFlushBehavior(ExplicitOnly)`,
+   `SetAutoLogAppEventsEnabled(false)`, `SetAdvertiserIdCollectionEnabled(false)`,
+   `SetAdvertiserTrackingEnabled(false)`, `SetSKAdNetworkReportEnabled(false)`) right before
+   `InitializeSdk()`, so values a previous session persisted do not apply.
 3. After consent (and after the ATT prompt, if the app shows one):
 
    ```csharp
@@ -301,15 +314,68 @@ Behaviour differences:
 - On iOS, the automatic-logging value set at Meta overrides the local one (SDK 18.0.2,
   section 4.1).
 
-## 5) Limited Login
+## 5) Facebook Login
 
-For Limited Login, pass:
-- `FacebookTrackingMode.Limited`
-- a non-empty `nonce` (raw nonce string)
+`NativeFacebookLogin.SignInAsync(presenter.Handle, trackingMode, nonce, cancellationToken)`
+requests `public_profile` and `email`. Initialize the SDK first (section 2).
 
-The result can contain:
-- `AuthenticationToken`
-- `Nonce`
+### 5.1 Nonce (Limited Login, Firebase)
+
+The third parameter is still named `rawNonce` for compatibility, but it is the value the SDK
+puts in the `nonce` claim of the authentication token, and the value returned in
+`NativeFacebookSignInResult.Nonce`. It is required with `FacebookTrackingMode.Limited`
+(`missing_nonce` otherwise).
+
+For Firebase Authentication (Limited Login or OIDC credentials):
+
+1. Generate a cryptographically random raw nonce and keep it in memory.
+2. Pass `SHA-256(raw nonce)`, as lowercase hexadecimal, to `SignInAsync`.
+3. Give Firebase the returned `AuthenticationToken` together with the **raw** nonce. Firebase
+   hashes it and compares the result with the token's `nonce` claim.
+
+Passing the raw nonce to `SignInAsync` puts it in the claim, and Firebase then rejects the
+token. The returned `Nonce` is the claim, that is the hashed value; it is never the raw nonce.
+
+```csharp
+var rawNonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+var hashedNonce = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawNonce))).ToLowerInvariant();
+var result = await NativeFacebookLogin.SignInAsync(presenter.Handle, FacebookTrackingMode.Limited, hashedNonce, ct);
+// result.Nonce == hashedNonce; send result.AuthenticationToken and rawNonce to Firebase.
+```
+
+### 5.2 Result
+
+- `Success` always carries at least one token, both from this login only (never a token left
+  by an earlier login in the SDK's current-token cache):
+  - `AccessToken` (and `UserId`): classic login, `FacebookTrackingMode.Enabled` with tracking
+    authorized;
+  - `AuthenticationToken` (and `Nonce`, its claim): the OIDC token; the only credential of
+    Limited Login.
+- `Cancelled`: the user closed the login, or the caller cancelled (section 5.3).
+- `Failed` with a stable `ErrorCode`: `already_in_progress`, `missing_nonce`,
+  `invalid_login_configuration`, `missing_token` (the SDK returned no token at all),
+  `nonce_mismatch` (the authentication token's claim is not the requested nonce),
+  `login_feature_not_selected`, or `<NSError domain>:<code>` for an SDK error.
+  `ErrorMessage` is for logs only.
+
+### 5.3 Threading, concurrency and cancellation
+
+- `SignInAsync`, `SignOut` and `Initialize` may be called from any thread: the wrapper runs
+  LoginKit on the main thread. `HandleOpenUrl` is called by UIKit on the main thread.
+- One login at a time: a call while another is pending fails with `already_in_progress`.
+- Cancelling the `CancellationToken` completes the task with `Cancelled` once the wrapper has
+  released the pending login, so a new `SignInAsync` can start as soon as that task completes.
+- Limit of LoginKit 18.0.2: it has no public API to dismiss its login UI. The system
+  "wants to use facebook.com to sign in" prompt, the browser sheet or the Facebook app stays
+  up until the user closes it, or until the next login replaces it. Whatever that abandoned
+  login returns later is discarded; if it succeeded, the wrapper clears the SDK tokens it
+  stored, unless another login is in progress.
+- Consequence observed on the iOS 26 simulator: when the abandoned UI is still up, the next
+  `SignInAsync` makes LoginKit cancel the abandoned web authentication session, and LoginKit
+  reports that new login as `Cancelled` within milliseconds, without showing any UI. The login
+  after it works normally. An app that cancels logins programmatically should therefore treat
+  a `Cancelled` result that arrives almost immediately after such a cancellation as "try
+  again", or retry once.
 
 ## 6) Secrets policy
 
