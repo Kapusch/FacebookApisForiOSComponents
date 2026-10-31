@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit tests for the platform-neutral part of NativeFacebookLogin (request ids, cancellation,
+       late callbacks). Compiles the source files directly: the package itself targets net10.0-ios. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Kapusch.Facebook.iOS.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Kapusch.FacebookApisForiOSComponents/Facebook/NativeFacebookSignInRequests.cs" Link="Source/NativeFacebookSignInRequests.cs" />
+    <Compile Include="../../src/Kapusch.FacebookApisForiOSComponents/Facebook/NativeFacebookSignInResult.cs" Link="Source/NativeFacebookSignInResult.cs" />
+    <Compile Include="../../src/Kapusch.FacebookApisForiOSComponents/NativeSignInStatus.cs" Link="Source/NativeSignInStatus.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit.v3" Version="1.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.1" />
+  </ItemGroup>
+</Project>

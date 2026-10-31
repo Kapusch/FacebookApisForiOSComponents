@@ -48,6 +48,11 @@ KFB_EXPORT void kfb_facebook_signin_start(
 		context);
 }
 
+// The placeholder start completes synchronously, so there is never anything to cancel.
+KFB_EXPORT void kfb_facebook_signin_cancel(void *context)
+{
+}
+
 KFB_EXPORT void kfb_facebook_signout(void)
 {
 	KFBLogLoginNotSelected();

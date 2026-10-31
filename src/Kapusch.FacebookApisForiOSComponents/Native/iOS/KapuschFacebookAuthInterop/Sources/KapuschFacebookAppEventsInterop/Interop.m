@@ -44,7 +44,9 @@ static os_log_t KFBAppEventsLog(void)
 //   the managed layer refuses those calls until sdkDidInitialize ran.
 //
 // The class name, selectors and setting names are a contract with
-// KapuschFacebookSettingsRegistry.h; keep them in sync.
+// KapuschFacebookSettingsRegistry.h; keep them in sync. The Login wrapper also
+// initializes the SDK through finishLaunchingApplication:options:, so Login and
+// FacebookAppEvents share one initialization routine (KFBFinishLaunching).
 @interface KFBAppEventsSettingsRegistry : NSObject
 + (void)recordValue:(BOOL)value forSetting:(NSString *)setting;
 + (nullable NSNumber *)explicitValueForSetting:(NSString *)setting;
@@ -53,9 +55,11 @@ static os_log_t KFBAppEventsLog(void)
 + (nullable NSDictionary<NSString *, id> *)explicitDataProcessingOptions;
 + (BOOL)isSdkInitialized;
 + (void)sdkDidInitialize;
++ (BOOL)finishLaunchingApplication:(id)application options:(nullable NSDictionary *)launchOptions;
 @end
 
 static void KFBReapplyExplicitSettings(void);
+static BOOL KFBFinishLaunching(UIApplication *application, NSDictionary *launchOptions);
 
 @implementation KFBAppEventsSettingsRegistry
 
@@ -127,6 +131,17 @@ static BOOL KFBSdkInitialized = NO;
 		KFBSdkInitialized = YES;
 	}
 	KFBReapplyExplicitSettings();
+}
+
+// The Login wrapper initializes the SDK through this method, so Login and
+// FacebookAppEvents share KFBFinishLaunching. Main thread.
++ (BOOL)finishLaunchingApplication:(id)application options:(nullable NSDictionary *)launchOptions
+{
+	UIApplication *validApplication = [application isKindOfClass:UIApplication.class]
+		? (UIApplication *)application
+		: UIApplication.sharedApplication;
+	NSDictionary *validOptions = [launchOptions isKindOfClass:NSDictionary.class] ? launchOptions : nil;
+	return KFBFinishLaunching(validApplication, validOptions);
 }
 
 @end

@@ -12,9 +12,9 @@ Checks:
    privacy manifest the targets bundle.
 2. Every C entry point declared by the wrapper headers is exported by both
    slices of its static library.
-3. Every kfb_appevents_* entry point is bound by FacebookAppEvents with a
-   static __Internal import, and no Login / Share / App Events binding
-   resolves symbols at run time.
+3. Every kfb_appevents_* entry point is bound by FacebookAppEvents and every
+   Login entry point by NativeFacebookLogin, with static __Internal imports,
+   and no Login / Share / App Events binding resolves symbols at run time.
 4. The managed constants cover every App Events name the bundled SDK headers
    declare, and every constant value exists in the bundled FBSDKCoreKit binary.
 """
@@ -141,6 +141,13 @@ def check_app_events_bindings() -> None:
             fail(f"{name} must use static __Internal imports so iOS keeps its native symbols")
 
 
+def check_login_bindings() -> None:
+    source = (FACEBOOK_CS / "NativeFacebookLogin.iOS.cs").read_text()
+    for symbol in exported_symbols(HEADERS / "KapuschFacebookAuthInterop.h"):
+        if f'EntryPoint = "{symbol}"' not in source:
+            fail(f"NativeFacebookLogin does not bind {symbol}")
+
+
 def check_constants(extracted: Path) -> None:
     core = sorted((extracted / "fb" / "FBSDKCoreKit.xcframework").glob("ios-*/FBSDKCoreKit.framework"))
     device = [path for path in core if "simulator" not in path.parent.name]
@@ -183,6 +190,7 @@ def main() -> int:
         extracted = Path(temp)
         check_exports(extracted)
         check_app_events_bindings()
+        check_login_bindings()
         check_constants(extracted)
 
     if errors:
@@ -191,7 +199,7 @@ def main() -> int:
             print(f"  - {error}", file=sys.stderr)
         return 1
 
-    print("OK: package layout, native exports, App Events bindings and constants are valid.")
+    print("OK: package layout, native exports, App Events and Login bindings and constants are valid.")
     return 0
 
 
