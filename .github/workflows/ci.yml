@@ -29,6 +29,9 @@ jobs:
       - name: Validate feature selection
         run: bash tests/validate-feature-selection.sh
 
+      - name: Managed Login request tests
+        run: dotnet test tests/SignInRequests.Tests/SignInRequests.Tests.csproj
+
       - name: Install iOS workload
         run: |
           dotnet workload install ios --version 10.0.203

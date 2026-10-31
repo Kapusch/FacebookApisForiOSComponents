@@ -19,7 +19,8 @@
 - `samples/` — optional sample template (no secrets committed)
 
 ## Validation
-- `bash tests/validate-feature-selection.sh` — feature selection and wrapper source invariants.
+- `bash tests/validate-feature-selection.sh` — feature selection and wrapper source invariants (including the Login callback contract).
+- `dotnet test tests/SignInRequests.Tests/SignInRequests.Tests.csproj` — managed Login request ids, cancellation and late callbacks (plain .NET, no iOS needed).
 - `python3 scripts/validate-package.py` — packed layout, native exports, App Events bindings and constants.
 - `python3 scripts/verify-public.py` — no real Facebook credentials or emails in tracked files, and no private term read from `KAPUSCH_PRIVATE_TERMS` or the untracked `.git/info/private-terms`.
 - `python3 scripts/verify-app-symbols.py <app executable>` — a built app (CI builds the sample) keeps every `kfb_*` entry point.

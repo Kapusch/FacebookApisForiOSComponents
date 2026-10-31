@@ -39,6 +39,7 @@ and Events Manager > Test Events. "App Events: withdraw consent" follows the wit
 `Docs/Integration.md` (explicit-only flushing, switches off, user ID and user data cleared). Without
 a `FacebookAppID` the App Events buttons only print a message.
 
-The sample also calls `NativeFacebookLogin.Initialize` at launch for its Login button, which
-initializes the SDK before any App Events consent; a consent-first app initializes it only after
-consent (`Docs/Integration.md`, section 4.2).
+The sample does not initialize the SDK at launch. "Sign In (Limited)" initializes it first when
+needed (every App Events switch off unless consent was granted), then runs Limited Login with
+SHA-256 of a raw nonce, as Firebase expects, and prints whether the returned `Nonce` is that hash
+(`Docs/Integration.md`, section 5). Tokens are never printed.
